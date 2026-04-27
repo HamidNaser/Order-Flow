@@ -1,0 +1,7 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Order.MessagePump/Order.MessagePump.csproj" />
+    <Project Path="src/Order.MessagePump.Aws/Order.MessagePump.Aws.csproj" />
+    <Project Path="src/Order.MessagePump.Redis/Order.MessagePump.Redis.csproj" />
+  </Folder>
+</Solution>
