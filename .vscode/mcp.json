@@ -1,0 +1,16 @@
+{
+  "servers": {
+    "order-message-ops": {
+      "type": "stdio",
+      "command": "dotnet",
+      "args": [
+        "run",
+        "--project",
+        "${workspaceFolder}/Order.MessageOperations/Order.MessageOperations.Mcp/Order.MessageOperations.Mcp.csproj"
+      ],
+      "env": {
+        "MESSAGEOPS_API_URL": "http://localhost:55701"
+      }
+    }
+  }
+}

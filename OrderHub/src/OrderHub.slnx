@@ -1,0 +1,16 @@
+<Solution>
+  <Project Path="../../OrderCommon/src/Order.MessagePump.Aws/Order.MessagePump.Aws.csproj" />
+  <Project Path="../../OrderCommon/src/Order.MessagePump.Redis/Order.MessagePump.Redis.csproj" />
+  <Project Path="../../OrderCommon/src/Order.MessagePump/Order.MessagePump.csproj" />
+  <Project Path="../../OrderCommon/src/Order.NotificationService.Contracts/Order.NotificationService.Contracts.csproj" />
+  <Project Path="OrderHub.Api/OrderHub.Api.csproj" />
+  <Project Path="OrderHub.AppHost/OrderHub.AppHost.csproj" />
+  <Project Path="OrderHub.Common/OrderHub.Common.csproj" />
+  <Project Path="OrderHub.Contracts/OrderHub.Contracts.csproj" />
+  <Project Path="OrderHub.IngestExpress.Api/OrderHub.IngestExpress.Api.csproj" />
+  <Project Path="OrderHub.IngestExpress.Worker/OrderHub.IngestExpress.Worker.csproj" />
+  <Project Path="OrderHub.IngestStandard.Api/OrderHub.IngestStandard.Api.csproj" />
+  <Project Path="OrderHub.IngestStandard.Worker/OrderHub.IngestStandard.Worker.csproj" />
+  <Project Path="OrderHub.IntegrationTests/OrderHub.IntegrationTests.csproj" />
+  <Project Path="OrderHub.UnitTests/OrderHub.UnitTests.csproj" />
+</Solution>

@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>OrderHub.IngestStandard.Api</name>
+    </assembly>
+    <members>
+        <member name="T:OrderHub.IngestStandard.Api.Configuration.Swagger.SwaggerHostFactory">
+            <remarks>
+            https://github.com/domaindrivendev/Swashbuckle.AspNetCore/blob/master/docs/configure-and-customize-cli.md#use-the-cli-tool-with-a-custom-host-configuration
+            </remarks>
+        </member>
+    </members>
+</doc>

@@ -1,0 +1,69 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <UserSecretsId>8ac250ea-eb62-482d-8e9f-fef9d28e0e51</UserSecretsId>
+        <AssemblyName>OrderHub.Common</AssemblyName>
+        <RootNamespace>OrderHub.Common</RootNamespace>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <NoWarn>$(NoWarn);CS1591</NoWarn>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Asp.Versioning.Mvc.ApiExplorer" Version="8.1.0" />
+        <PackageReference Include="AspNetCore.HealthChecks.UI.Client" Version="9.0.0" />
+        <PackageReference Include="AWSSDK.Extensions.NETCore.Setup" Version="4.0.3.11" />
+        <PackageReference Include="AWSSDK.S3" Version="4.0.11.1" />
+        <PackageReference Include="AWSSDK.KeyManagementService" Version="4.0.7" />
+        <PackageReference Include="CorrelationId" Version="3.0.1" />
+        <PackageReference Include="Duende.AccessTokenManagement" Version="4.0.1" />
+        <PackageReference Include="LaunchDarkly.ServerSdk" Version="8.10.3" />
+        <PackageReference Include="libphonenumber-csharp" Version="9.0.18" />
+        <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.21" />
+        <PackageReference Include="Microsoft.Extensions.Http.Resilience" Version="9.4.0" />
+        <PackageReference Include="Microsoft.IdentityModel.JsonWebTokens" Version="8.14.0" />
+        <PackageReference Include="Microsoft.IdentityModel.Protocols" Version="8.14.0" />
+        <PackageReference Include="Microsoft.IdentityModel.Protocols.OpenIdConnect" Version="8.14.0" />
+        <PackageReference Include="Microsoft.IdentityModel.Tokens" Version="8.14.0" />
+        <PackageReference Include="NewRelic.Agent.Api" Version="10.41.0" />
+        <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+        <PackageReference Include="NSwag.MSBuild" Version="14.6.0">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="9.0.2" />
+        <PackageReference Include="Serilog.AspNetCore" Version="9.0.0" />
+        <PackageReference Include="Serilog.Sinks.OpenTelemetry" Version="4.2.0" />
+        <PackageReference Include="Serilog.Sinks.Splunk" Version="5.1.0" />
+        <PackageReference Include="Swashbuckle.AspNetCore" Version="9.0.6" />
+        <PackageReference Include="MongoDB.Bson" Version="3.3.0" />
+        <PackageReference Include="MongoDB.Driver" Version="3.3.0" />
+
+        <PackageReference Include="Microsoft.Extensions.ServiceDiscovery" Version="9.4.0" />
+        <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.12.0" />
+        <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.12.0" />
+        <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.12.0" />
+        <PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.12.0" />
+        <PackageReference Include="OpenTelemetry.Instrumentation.Runtime" Version="1.12.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Content Include="appsettings.*.json">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </Content>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\OrderHub.Contracts\OrderHub.Contracts.csproj" />
+        <ProjectReference Include="..\..\..\OrderCommon\src\Order.MessagePump.Aws\Order.MessagePump.Aws.csproj" />
+        <ProjectReference Include="..\..\..\OrderCommon\src\Order.MessagePump\Order.MessagePump.csproj" />
+        <ProjectReference Include="..\..\..\OrderCommon\src\Order.MessagePump.Redis\Order.MessagePump.Redis.csproj" />
+    </ItemGroup>
+
+</Project>

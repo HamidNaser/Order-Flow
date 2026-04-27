@@ -1,0 +1,63 @@
+{
+  "realm": "ordergateway-local",
+  "enabled": true,
+  "sslRequired": "none",
+  "accessTokenLifespan": 600,
+  "clientScopes": [
+    {
+      "name": "orderprocessing.ingeststandard-api.orders.write",
+      "protocol": "openid-connect"
+    },
+    {
+      "name": "orderprocessing.ingestexpress-api.orders.write",
+      "protocol": "openid-connect"
+    },
+    {
+      "name": "orderprocessing.order-api.orders.read",
+      "protocol": "openid-connect"
+    },
+    {
+      "name": "orderprocessing.ingeststandard-api.customer-event.write",
+      "protocol": "openid-connect"
+    }
+  ],
+  "clients": [
+    {
+      "clientId": "ordergateway-local",
+      "name": "OrderGateway Local Client",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "secret": "ordergateway-local-secret",
+      "serviceAccountsEnabled": true,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "defaultClientScopes": [
+        "profile",
+        "email",
+        "roles",
+        "web-origins",
+        "orderprocessing.ingeststandard-api.orders.write",
+        "orderprocessing.ingestexpress-api.orders.write",
+        "orderprocessing.order-api.orders.read",
+        "orderprocessing.ingeststandard-api.customer-event.write"
+      ],
+      "optionalClientScopes": [
+        "common-consumer.api.manage"
+      ],
+      "protocolMappers": [
+        {
+          "name": "custom-audience-non-production",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.custom.audience": "non-production-resources",
+            "id.token.claim": "false",
+            "access.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ]
+}

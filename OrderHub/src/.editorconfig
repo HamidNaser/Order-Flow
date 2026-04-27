@@ -1,0 +1,14 @@
+[*]
+indent_style = space
+trim_trailing_whitespace = true
+insert_final_newline = true
+
+[*.json]
+indent_size = 2
+
+[*.cs]
+indent_size = 4
+
+[*.csproj]
+indent_size = 4
+ij_xml_space_inside_empty_tag = true

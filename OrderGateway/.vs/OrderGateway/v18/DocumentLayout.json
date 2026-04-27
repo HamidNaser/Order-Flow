@@ -1,0 +1,149 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\Work\\mine\\Communication\\OrderGateway\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{F7D982DB-E9A8-4CD7-B4C3-34FCA7F93337}|src\\OrderGateway.Common\\OrderGateway.Common.csproj|c:\\work\\mine\\communication\\ordergateway\\src\\ordergateway.common\\helpers\\videomediaparser.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{F7D982DB-E9A8-4CD7-B4C3-34FCA7F93337}|src\\OrderGateway.Common\\OrderGateway.Common.csproj|solutionrelative:src\\ordergateway.common\\helpers\\videomediaparser.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F7D982DB-E9A8-4CD7-B4C3-34FCA7F93337}|src\\OrderGateway.Common\\OrderGateway.Common.csproj|c:\\work\\mine\\communication\\ordergateway\\src\\ordergateway.common\\services\\mapping\\orderrequestmapper.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{F7D982DB-E9A8-4CD7-B4C3-34FCA7F93337}|src\\OrderGateway.Common\\OrderGateway.Common.csproj|solutionrelative:src\\ordergateway.common\\services\\mapping\\orderrequestmapper.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F7D982DB-E9A8-4CD7-B4C3-34FCA7F93337}|src\\OrderGateway.Common\\OrderGateway.Common.csproj|c:\\work\\mine\\communication\\ordergateway\\src\\ordergateway.common\\services\\mapping\\iorderrequestmapper.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{F7D982DB-E9A8-4CD7-B4C3-34FCA7F93337}|src\\OrderGateway.Common\\OrderGateway.Common.csproj|solutionrelative:src\\ordergateway.common\\services\\mapping\\iorderrequestmapper.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{9417695C-0B23-4BE4-8DF2-11DAF22C8FC7}|src\\OrderGateway.IntegrationTests\\OrderGateway.IntegrationTests.csproj|c:\\work\\mine\\communication\\ordergateway\\src\\ordergateway.integrationtests\\ordergatewayapi\\v1\\eventhandling\\publisheventtests.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{9417695C-0B23-4BE4-8DF2-11DAF22C8FC7}|src\\OrderGateway.IntegrationTests\\OrderGateway.IntegrationTests.csproj|solutionrelative:src\\ordergateway.integrationtests\\ordergatewayapi\\v1\\eventhandling\\publisheventtests.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{9417695C-0B23-4BE4-8DF2-11DAF22C8FC7}|src\\OrderGateway.IntegrationTests\\OrderGateway.IntegrationTests.csproj|c:\\work\\mine\\communication\\ordergateway\\src\\ordergateway.integrationtests\\ordergatewayapi\\v1\\eventhandling\\ordereventtests.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{9417695C-0B23-4BE4-8DF2-11DAF22C8FC7}|src\\OrderGateway.IntegrationTests\\OrderGateway.IntegrationTests.csproj|solutionrelative:src\\ordergateway.integrationtests\\ordergatewayapi\\v1\\eventhandling\\ordereventtests.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{9417695C-0B23-4BE4-8DF2-11DAF22C8FC7}|src\\OrderGateway.IntegrationTests\\OrderGateway.IntegrationTests.csproj|c:\\work\\mine\\communication\\ordergateway\\src\\ordergateway.integrationtests\\ordergatewayapi\\v1\\eventhandling\\eventwithmediaidtests.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{9417695C-0B23-4BE4-8DF2-11DAF22C8FC7}|src\\OrderGateway.IntegrationTests\\OrderGateway.IntegrationTests.csproj|solutionrelative:src\\ordergateway.integrationtests\\ordergatewayapi\\v1\\eventhandling\\eventwithmediaidtests.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{9417695C-0B23-4BE4-8DF2-11DAF22C8FC7}|src\\OrderGateway.IntegrationTests\\OrderGateway.IntegrationTests.csproj|c:\\work\\mine\\communication\\ordergateway\\src\\ordergateway.integrationtests\\resiliency\\messagepumpresiliencytests.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{9417695C-0B23-4BE4-8DF2-11DAF22C8FC7}|src\\OrderGateway.IntegrationTests\\OrderGateway.IntegrationTests.csproj|solutionrelative:src\\ordergateway.integrationtests\\resiliency\\messagepumpresiliencytests.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{9417695C-0B23-4BE4-8DF2-11DAF22C8FC7}|src\\OrderGateway.IntegrationTests\\OrderGateway.IntegrationTests.csproj|c:\\work\\mine\\communication\\ordergateway\\src\\ordergateway.integrationtests\\support\\generichelper.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{9417695C-0B23-4BE4-8DF2-11DAF22C8FC7}|src\\OrderGateway.IntegrationTests\\OrderGateway.IntegrationTests.csproj|solutionrelative:src\\ordergateway.integrationtests\\support\\generichelper.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 0,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "VideoMediaParser.cs",
+              "DocumentMoniker": "C:\\Work\\mine\\Communication\\OrderGateway\\src\\OrderGateway.Common\\Helpers\\VideoMediaParser.cs",
+              "RelativeDocumentMoniker": "src\\OrderGateway.Common\\Helpers\\VideoMediaParser.cs",
+              "ToolTip": "C:\\Work\\mine\\Communication\\OrderGateway\\src\\OrderGateway.Common\\Helpers\\VideoMediaParser.cs",
+              "RelativeToolTip": "src\\OrderGateway.Common\\Helpers\\VideoMediaParser.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAQAAAAmAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-04-23T15:57:20.856Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "OrderRequestMapper.cs",
+              "DocumentMoniker": "C:\\Work\\mine\\Communication\\OrderGateway\\src\\OrderGateway.Common\\Services\\Mapping\\OrderRequestMapper.cs",
+              "RelativeDocumentMoniker": "src\\OrderGateway.Common\\Services\\Mapping\\OrderRequestMapper.cs",
+              "ToolTip": "C:\\Work\\mine\\Communication\\OrderGateway\\src\\OrderGateway.Common\\Services\\Mapping\\OrderRequestMapper.cs",
+              "RelativeToolTip": "src\\OrderGateway.Common\\Services\\Mapping\\OrderRequestMapper.cs",
+              "ViewState": "AgIAABAAAAAAAAAAAAAgwAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-04-23T15:56:31.302Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "IOrderRequestMapper.cs",
+              "DocumentMoniker": "C:\\Work\\mine\\Communication\\OrderGateway\\src\\OrderGateway.Common\\Services\\Mapping\\IOrderRequestMapper.cs",
+              "RelativeDocumentMoniker": "src\\OrderGateway.Common\\Services\\Mapping\\IOrderRequestMapper.cs",
+              "ToolTip": "C:\\Work\\mine\\Communication\\OrderGateway\\src\\OrderGateway.Common\\Services\\Mapping\\IOrderRequestMapper.cs",
+              "RelativeToolTip": "src\\OrderGateway.Common\\Services\\Mapping\\IOrderRequestMapper.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-04-23T15:56:27.037Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "PublishEventTests.cs",
+              "DocumentMoniker": "C:\\Work\\mine\\Communication\\OrderGateway\\src\\OrderGateway.IntegrationTests\\OrderGatewayApi\\V1\\EventHandling\\PublishEventTests.cs",
+              "RelativeDocumentMoniker": "src\\OrderGateway.IntegrationTests\\OrderGatewayApi\\V1\\EventHandling\\PublishEventTests.cs",
+              "ToolTip": "C:\\Work\\mine\\Communication\\OrderGateway\\src\\OrderGateway.IntegrationTests\\OrderGatewayApi\\V1\\EventHandling\\PublishEventTests.cs",
+              "RelativeToolTip": "src\\OrderGateway.IntegrationTests\\OrderGatewayApi\\V1\\EventHandling\\PublishEventTests.cs",
+              "ViewState": "AgIAABoAAAAAAAAAAAApwCsAAAAwAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-04-23T02:03:53.942Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "MessagePumpResiliencyTests.cs",
+              "DocumentMoniker": "C:\\Work\\mine\\Communication\\OrderGateway\\src\\OrderGateway.IntegrationTests\\Resiliency\\MessagePumpResiliencyTests.cs",
+              "RelativeDocumentMoniker": "src\\OrderGateway.IntegrationTests\\Resiliency\\MessagePumpResiliencyTests.cs",
+              "ToolTip": "C:\\Work\\mine\\Communication\\OrderGateway\\src\\OrderGateway.IntegrationTests\\Resiliency\\MessagePumpResiliencyTests.cs",
+              "RelativeToolTip": "src\\OrderGateway.IntegrationTests\\Resiliency\\MessagePumpResiliencyTests.cs",
+              "ViewState": "AgIAABwAAAAAAAAAAAAgwAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-04-23T02:03:23.279Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 7,
+              "Title": "GenericHelper.cs",
+              "DocumentMoniker": "C:\\Work\\mine\\Communication\\OrderGateway\\src\\OrderGateway.IntegrationTests\\Support\\GenericHelper.cs",
+              "RelativeDocumentMoniker": "src\\OrderGateway.IntegrationTests\\Support\\GenericHelper.cs",
+              "ToolTip": "C:\\Work\\mine\\Communication\\OrderGateway\\src\\OrderGateway.IntegrationTests\\Support\\GenericHelper.cs",
+              "RelativeToolTip": "src\\OrderGateway.IntegrationTests\\Support\\GenericHelper.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-04-23T02:03:09.014Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "OrderEventTests.cs",
+              "DocumentMoniker": "C:\\Work\\mine\\Communication\\OrderGateway\\src\\OrderGateway.IntegrationTests\\OrderGatewayApi\\V1\\EventHandling\\OrderEventTests.cs",
+              "RelativeDocumentMoniker": "src\\OrderGateway.IntegrationTests\\OrderGatewayApi\\V1\\EventHandling\\OrderEventTests.cs",
+              "ToolTip": "C:\\Work\\mine\\Communication\\OrderGateway\\src\\OrderGateway.IntegrationTests\\OrderGatewayApi\\V1\\EventHandling\\OrderEventTests.cs",
+              "RelativeToolTip": "src\\OrderGateway.IntegrationTests\\OrderGatewayApi\\V1\\EventHandling\\OrderEventTests.cs",
+              "ViewState": "AgIAAB0AAAAAAAAAAAApwC4AAAAlAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-04-23T02:02:35.857Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "EventWithMediaIdTests.cs",
+              "DocumentMoniker": "C:\\Work\\mine\\Communication\\OrderGateway\\src\\OrderGateway.IntegrationTests\\OrderGatewayApi\\V1\\EventHandling\\EventWithMediaIdTests.cs",
+              "RelativeDocumentMoniker": "src\\OrderGateway.IntegrationTests\\OrderGatewayApi\\V1\\EventHandling\\EventWithMediaIdTests.cs",
+              "ToolTip": "C:\\Work\\mine\\Communication\\OrderGateway\\src\\OrderGateway.IntegrationTests\\OrderGatewayApi\\V1\\EventHandling\\EventWithMediaIdTests.cs",
+              "RelativeToolTip": "src\\OrderGateway.IntegrationTests\\OrderGatewayApi\\V1\\EventHandling\\EventWithMediaIdTests.cs",
+              "ViewState": "AgIAABwAAAAAAAAAAAApwC0AAAAlAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-04-23T02:02:07.559Z"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

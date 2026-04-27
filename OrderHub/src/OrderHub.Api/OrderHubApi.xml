@@ -1,0 +1,69 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>OrderHub.Api</name>
+    </assembly>
+    <members>
+        <member name="T:OrderHub.Api.Configuration.Swagger.SwaggerHostFactory">
+            <remarks>
+            https://github.com/domaindrivendev/Swashbuckle.AspNetCore/blob/master/docs/configure-and-customize-cli.md#use-the-cli-tool-with-a-custom-host-configuration
+            </remarks>
+        </member>
+        <member name="T:OrderHub.Api.Controllers.V0.RedisCacheController">
+            <summary>
+            Utility endpoints backed by <see cref="T:Microsoft.Extensions.Caching.Distributed.IDistributedCache"/> and customer locks.
+            This controller is primarily intended for local/dev and integration-test workflows.
+            </summary>
+        </member>
+        <member name="M:OrderHub.Api.Controllers.V0.RedisCacheController.#ctor(Microsoft.Extensions.Caching.Distributed.IDistributedCache,Order.MessagePump.Locks.ILockManager)">
+            <summary>
+            Utility endpoints backed by <see cref="T:Microsoft.Extensions.Caching.Distributed.IDistributedCache"/> and customer locks.
+            This controller is primarily intended for local/dev and integration-test workflows.
+            </summary>
+        </member>
+        <member name="M:OrderHub.Api.Controllers.V0.RedisCacheController.Get(System.String)">
+            <summary>
+            Reads a string value from the distributed cache by <paramref name="key"/>.
+            </summary>
+            <param name="key">Cache key to retrieve.</param>
+            <returns>A response containing the cached value, or <see langword="null"/> if not found.</returns>
+        </member>
+        <member name="M:OrderHub.Api.Controllers.V0.RedisCacheController.Set(OrderHub.Contracts.Utility.RedisCacheSetRequest)">
+            <summary>
+            Writes a string value to the distributed cache.
+            </summary>
+            <param name="request">The cache key and value.</param>
+        </member>
+        <member name="M:OrderHub.Api.Controllers.V0.RedisCacheController.Delete(System.String)">
+            <summary>
+            Deletes a value from the distributed cache by <paramref name="key"/>.
+            </summary>
+            <param name="key">Cache key to delete.</param>
+        </member>
+        <member name="M:OrderHub.Api.Controllers.V0.RedisCacheController.AcquireLock(OrderHub.Contracts.Utility.RedisLockAcquireRequest)">
+            <summary>
+            Test helper: acquires a customer lock.
+            Returns the lock fields required to later release the lock via <see cref="M:OrderHub.Api.Controllers.V0.RedisCacheController.ReleaseLock(OrderHub.Contracts.Utility.RedisLockReleaseRequest)"/>.
+            </summary>
+            <remarks>
+            Uses the same lock mechanism as the message workers (via <see cref="T:Order.MessagePump.Locks.ILockManager"/>).
+            </remarks>
+            <param name="request">Customer id to lock, plus an optional TTL.</param>
+            <returns>Lock receipt information for use when releasing.</returns>
+        </member>
+        <member name="M:OrderHub.Api.Controllers.V0.RedisCacheController.ReleaseLock(OrderHub.Contracts.Utility.RedisLockReleaseRequest)">
+            <summary>
+            Test helper: releases a previously acquired lock.
+            </summary>
+            <param name="request">Lock fields returned by <see cref="M:OrderHub.Api.Controllers.V0.RedisCacheController.AcquireLock(OrderHub.Contracts.Utility.RedisLockAcquireRequest)"/>.</param>
+            <returns>Whether the lock was released.</returns>
+        </member>
+        <member name="M:OrderHub.Api.Controllers.V1.OrderController.GetFullOrder(System.String,System.String)">
+            <summary>Get a full order by id.</summary>
+            <remarks>GET an order (with full content) by order id AND store id.</remarks>
+        </member>
+        <member name="M:OrderHub.Api.Controllers.V1.OrderController.GetOrderContent(System.String)">
+            <summary>Get order content by encoded S3 key.</summary>
+        </member>
+    </members>
+</doc>

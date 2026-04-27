@@ -1,0 +1,41 @@
+{
+  "EncryptedConfiguration": {
+    "Keys": [
+      "Clients:OrderApiV0Client:ApiKey",
+      "OAuth:Bridge:ClientSecret"
+    ]
+  },
+  "OAuth": {
+    "Bridge": {
+      "AuthorityUrl": "https://authorize.ordersystem.com/oauth2/aus132uaxy2eomhmi357/v1/token",
+      "ClientId": "dce9d0a3-e895-4afb-9380-d9bad1118e96",
+      "ClientSecret": "AQICAHi9igodBns58sytZqPf8XLcr1rdI1Gxr6AUf11N7ywcEAHxaoM2GrRMjFwsv1GExR8CAAAAmzCBmAYJKoZIhvcNAQcGoIGKMIGHAgEAMIGBBgkqhkiG9w0BBwEwHgYJYIZIAWUDBAEuMBEEDHIBvgE9qPe7dk5SPgIBEIBUoxoh0TCyKxH77ms/BKpHqcV8N5u8W9YZ99QGgyE1CoPD8EMn53Wo3Gie08egh3O77RY5KrI70t7OMozHWeBoFUOoBmDLt2YEuSP+AvgSgU/m5G2d",
+      "Scope": "orderprocessing.order-api.orders.read orderprocessing.ingestexpress-api.orders.write orderprocessing.ingeststandard-api.orders.write orderprocessing.ingeststandard-api.customer-event.write"
+    }
+  },
+  "S3Config": {
+    "OrderBucketName": "awsorderprocessingnp-us-east-1-orders"
+  },
+  "Clients": {
+    "OrderApiV0Client": {
+      "ApiKey": "AQICAHi9igodBns58sytZqPf8XLcr1rdI1Gxr6AUf11N7ywcEAE9I1gvvJ2kToXzpcFY6MdPAAAAgzCBgAYJKoZIhvcNAQcGoHMwcQIBADBsBgkqhkiG9w0BBwEwHgYJYIZIAWUDBAEuMBEEDHQ4AL3YzOY3d5T3DAIBEIA/ORo+cUAtiQHLjlQt4IxFOkutGtZcHv2tac51d0ovGTNwR4LyEh/5rMpZlysbojm3mMwLe6/jdDe5Bc48CmBc",
+      "BaseAddress": "http://localhost:50001",
+      "TimeoutSeconds": 10
+    },
+    "OrderApiV1Client": {
+      "BaseAddress": "http://localhost:50001",
+      "TimeoutSeconds": 10,
+      "OAuthProvider": "Bridge"
+    },
+    "IngestExpressApiV1Client": {
+      "BaseAddress": "http://localhost:50002",
+      "TimeoutSeconds": 10,
+      "OAuthProvider": "Bridge"
+    },
+    "IngestStandardApiV1Client": {
+      "BaseAddress": "http://localhost:50003",
+      "TimeoutSeconds": 10,
+      "OAuthProvider": "Bridge"
+    }
+  }
+}

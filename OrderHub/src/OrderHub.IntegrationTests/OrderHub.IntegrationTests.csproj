@@ -1,0 +1,56 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+
+        <IsPackable>false</IsPackable>
+        <IsTestProject>true</IsTestProject>
+        <AssemblyName>OrderHub.IntegrationTests</AssemblyName>
+        <RootNamespace>OrderHub.IntegrationTests</RootNamespace>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Bogus" Version="35.6.3" />
+        <PackageReference Include="coverlet.collector" Version="6.0.4">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.13.0" />
+        <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+        <PackageReference Include="NSwag.MSBuild" Version="14.4.0">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="xunit" Version="2.9.3" />
+        <PackageReference Include="xunit.runner.visualstudio" Version="3.0.2">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\OrderHub.Common\OrderHub.Common.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Content Include="testsettings.*.json">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </Content>
+    </ItemGroup>
+
+    <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
+        <RunSettingsFilePath>$(MSBuildProjectDirectory)\local-test.runsettings</RunSettingsFilePath>
+    </PropertyGroup>
+
+    <Target Name="NSwag" BeforeTargets="BeforeResolveReferences">
+        <Exec WorkingDirectory="$(ProjectDir)"
+            Condition="!Exists('Clients/IngestExpressApi/V1/Client.cs')"
+            Command="$(NSwagExe_Net80) run Clients/IngestExpressApi/V1/nswag.json" />
+        <Exec WorkingDirectory="$(ProjectDir)"
+            Condition="!Exists('Clients/IngestStandardApi/V1/Client.cs')"
+            Command="$(NSwagExe_Net80) run Clients/IngestStandardApi/V1/nswag.json" />
+    </Target>
+
+</Project>

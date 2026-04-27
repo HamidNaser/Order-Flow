@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <Sdk Name="Aspire.AppHost.Sdk" Version="9.4.0" />
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <UserSecretsId>8efc99d1-8d22-4675-b6b7-8ba180fb8455</UserSecretsId>
+    <AssemblyName>OrderHub.AppHost</AssemblyName>
+    <RootNamespace>OrderHub.AppHost</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.AppHost" Version="9.4.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\OrderHub.Api\OrderHub.Api.csproj" />
+    <ProjectReference Include="..\OrderHub.IngestExpress.Api\OrderHub.IngestExpress.Api.csproj" />
+    <ProjectReference
+      Include="..\OrderHub.IngestExpress.Worker\OrderHub.IngestExpress.Worker.csproj" />
+    <ProjectReference Include="..\OrderHub.IngestStandard.Api\OrderHub.IngestStandard.Api.csproj" />
+    <ProjectReference
+      Include="..\OrderHub.IngestStandard.Worker\OrderHub.IngestStandard.Worker.csproj" />
+  </ItemGroup>
+
+</Project>

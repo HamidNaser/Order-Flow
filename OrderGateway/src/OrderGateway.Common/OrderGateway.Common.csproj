@@ -1,0 +1,55 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <UserSecretsId>6e165ad4-130f-45f9-a2d8-fa856fe192eb</UserSecretsId>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Asp.Versioning.Mvc" Version="8.1.0" />
+        <PackageReference Include="Asp.Versioning.Mvc.ApiExplorer" Version="8.1.0" />
+        <PackageReference Include="AspNetCore.HealthChecks.UI.Client" Version="9.0.0" />
+        <PackageReference Include="AWSSDK.KeyManagementService" Version="4.0.6" />
+        <PackageReference Include="CorrelationId" Version="3.0.1" />
+        <PackageReference Include="Destructurama.Attributed" Version="5.1.0" />
+        <PackageReference Include="Duende.AccessTokenManagement" Version="3.2.0" />
+        <PackageReference Include="LaunchDarkly.ServerSdk" Version="8.10.0" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="6.0.1" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.4" />
+        <PackageReference Include="Microsoft.Extensions.Http.Resilience" Version="9.7.0" />
+        <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+        <PackageReference Include="NSwag.MSBuild" Version="14.6.1">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="Microsoft.Extensions.DependencyModel" Version="9.0.4" />
+        <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="9.0.2" />
+        <PackageReference Include="Serilog.AspNetCore" Version="9.0.0" />
+        <PackageReference Include="Serilog.Sinks.Splunk" Version="5.1.0" />
+        <PackageReference Include="Swashbuckle.AspNetCore" Version="9.0.4" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\..\OrderCommon\src\Order.MessagePump.Aws\Order.MessagePump.Aws.csproj" />
+        <ProjectReference Include="..\..\..\OrderCommon\src\Order.MessagePump\Order.MessagePump.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Content Include="appsettings.*.json">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </Content>
+    </ItemGroup>
+
+    <Target Name="NSwag" BeforeTargets="BeforeResolveReferences">
+        <Exec WorkingDirectory="$(ProjectDir)" Condition="!Exists('Clients/IngestStandardApi/V1/Client.cs')" Command="$(NSwagExe_Net80) run Clients/IngestStandardApi/V1/nswag.json" />
+        <Exec WorkingDirectory="$(ProjectDir)" Condition="!Exists('Clients/IngestExpressApi/V1/Client.cs')" Command="$(NSwagExe_Net80) run Clients/IngestExpressApi/V1/nswag.json" />
+        <Exec WorkingDirectory="$(ProjectDir)" Condition="!Exists('Clients/CloudContent/V1/Client.cs')" Command="$(NSwagExe_Net80) run Clients/CloudContent/V1/nswag.json" />
+    </Target>
+
+</Project>

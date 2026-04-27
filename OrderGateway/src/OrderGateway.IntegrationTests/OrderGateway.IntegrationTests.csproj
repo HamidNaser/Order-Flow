@@ -1,0 +1,46 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+
+        <IsPackable>false</IsPackable>
+        <IsTestProject>true</IsTestProject>
+        <UserSecretsId>332d73fd-d558-4b2a-9033-04f24c87b0a2</UserSecretsId>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="coverlet.collector" Version="6.0.4">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.13.0" />
+        <PackageReference Include="NSwag.MSBuild" Version="14.6.1">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="xunit" Version="2.9.3" />
+        <PackageReference Include="xunit.runner.visualstudio" Version="3.0.2">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+    </ItemGroup>
+
+    <ItemGroup>
+        <Content Include="testsettings.*.json">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </Content>
+    </ItemGroup>
+
+        <ItemGroup>
+            <ProjectReference Include="..\OrderGateway.Common\OrderGateway.Common.csproj" />
+        </ItemGroup>
+
+    <Target Name="NSwag" BeforeTargets="BeforeResolveReferences">
+        <Exec WorkingDirectory="$(ProjectDir)" Condition="!Exists('Clients/OrderGatewayApi/V1/Client.cs')" Command="$(NSwagExe_Net80) run Clients/OrderGatewayApi/V1/nswag.json" />
+        <Exec WorkingDirectory="$(ProjectDir)" Condition="!Exists('Clients/OrderApi/V1/Client.cs')" Command="$(NSwagExe_Net80) run Clients/OrderApi/V1/nswag.json" />
+        <Exec WorkingDirectory="$(ProjectDir)" Condition="!Exists('Clients/OrderApi/V0/Client.cs')" Command="$(NSwagExe_Net80) run Clients/OrderApi/V0/nswag.json" />
+    </Target>
+
+</Project>

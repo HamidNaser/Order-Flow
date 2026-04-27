@@ -1,0 +1,47 @@
+{
+  "FeatureFlags": {
+    "orders.enableordergateway": [
+      {
+        "Key": "StoreEnabledStep",
+        "StoreId": 10001
+      }
+    ]
+  },
+  "Aws": {
+    "Connection": {
+      "ServiceUrl": "http://localhost:4566",
+      "Region": "us-east-1"
+    }
+  },
+  "OAuth": {
+    "CommonOrders": {
+      "AuthorityUrl": "http://localhost:8081/realms/orderprocessing-local/protocol/openid-connect/token",
+      "ClientId": "ordergateway-local",
+      "ClientSecret": "ordergateway-local-secret",
+      "Scope": "orderprocessing.order-api.orders.read orderprocessing.ingestexpress-api.orders.write orderprocessing.ingeststandard-api.orders.write orderprocessing.ingeststandard-api.customer-event.write"
+    }
+  },
+  "Clients": {
+    "OrderGatewayApiV1Client": {
+      "ApiKey": "local-dev-api-key-orderevents",
+      "ResourceBaseAddress": "http://localhost:50010"
+    },
+    "OrderApiV1Client": {
+      "BaseAddress": "http://localhost:50001",
+      "OAuthProvider": "CommonOrders",
+      "TimeoutSeconds": 10
+    },
+    "OrderApiV0Client": {
+      "ResourceBaseAddress": "http://localhost:50001",
+      "ApiKey": "local-dev-api-key-order"
+    }
+  },
+
+  "StoreId": 10001,
+  "CloudContentKey": "ordergateway-learning-content/sample/object-id",
+  "CloudContentValue": "OrderGateway learning test order content",
+  "OrderAttachmentSourceTrackingId": 10000000001,
+  "OrderAttachmentReferralId": 1000001
+
+
+}

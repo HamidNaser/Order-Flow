@@ -1,0 +1,43 @@
+{
+  "EncryptedConfiguration": {
+    "Keys": [
+      "Clients:OrderGatewayApiV1Client:ApiKey",
+      "Clients:OrderApiV0Client:ApiKey",
+      "OAuth:Order:ClientSecret",
+      "OAuth:CommonOrders:ClientSecret"
+    ]
+  },
+  "OAuth": {
+    "Order": {
+      "AuthorityUrl": "https://identity.ordergateway-learning.local/connect/token",
+      "ClientId": "ordergateway-learning-order-client-id",
+      "ClientSecret": "REDACTED_ROTATE_ME",
+      "Scope": "ordergateway.learning.read"
+    },
+    "CommonOrders": {
+      "AuthorityUrl": "https://auth.ordergateway-learning.local/oauth2/default/v1/token",
+      "ClientId": "ordergateway-learning-client-id",
+      "ClientSecret": "REDACTED_ROTATE_ME",
+      "Scope": "ordergateway.learning.read ordergateway.learning.write"
+    }
+  },
+  "Clients": {
+    "OrderGatewayApiV1Client": {
+      "ApiKey": "REDACTED_ROTATE_ME",
+      "ResourceBaseAddress": "https://api.ordergateway-learning.local/events"
+    },
+    "OrderApiV1Client": {
+      "BaseAddress": "https://api.ordergateway-learning.local/orders/v1",
+      "OAuthProvider": "CommonOrders"
+    },
+    "OrderApiV0Client": {
+      "ResourceBaseAddress": "https://api.ordergateway-learning.local/orders/v0",
+      "ApiKey": "REDACTED_ROTATE_ME"
+    }
+  },
+  "StoreId": 10001,
+  "CloudContentKey": "ordergateway-learning-content/sample/object-id",
+  "CloudContentValue": "OrderGateway learning test order content",
+  "OrderAttachmentSourceTrackingId": 10000000001,
+  "OrderAttachmentReferralId": 1000001
+}

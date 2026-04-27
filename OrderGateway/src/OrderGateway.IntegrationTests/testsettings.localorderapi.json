@@ -1,0 +1,45 @@
+{
+  "EncryptedConfiguration": {
+    "Keys": [
+      "Clients:OrderGatewayApiV1Client:ApiKey",
+      "OAuth:CommonOrders:ClientSecret",
+      "OAuth:Order:ClientSecret"
+    ]
+  },
+  "Aws": {
+    "Profile": "default"
+  },
+  "OAuth": {
+    "Order": {
+      "AuthorityUrl": "https://identity.ordergateway-learning.local/connect/token",
+      "ClientId": "ordergateway-learning-order-client-id",
+      "ClientSecret": "REDACTED_ROTATE_ME",
+      "Scope": "ordergateway.learning.read"
+    },
+    "CommonOrders": {
+      "AuthorityUrl": "https://auth.ordergateway-learning.local/oauth2/default/v1/token",
+      "ClientId": "ordergateway-learning-client-id",
+      "ClientSecret": "REDACTED_ROTATE_ME",
+      "Scope": "ordergateway.learning.read ordergateway.learning.write"
+    }
+  },
+  "Clients": {
+    "OrderGatewayApiV1Client": {
+      "ApiKey": "local-dev-api-key-orderevents",
+      "ResourceBaseAddress": "http://localhost:50010"
+    },
+    "OrderApiV0Client": {
+      "ResourceBaseAddress": "http://localhost:50001",
+      "ApiKey": "local-dev-api-key-order"
+    },
+    "OrderApiV1Client": {
+      "BaseAddress": "http://localhost:50001",
+      "OAuthProvider": "CommonOrders"
+    }
+  },
+  "StoreId": 10001,
+  "CloudContentKey": "ordergateway-learning-content/sample/object-id",
+  "CloudContentValue": "OrderGateway learning test order content",
+  "OrderAttachmentSourceTrackingId": 10000000001,
+  "OrderAttachmentReferralId": 1000001
+}

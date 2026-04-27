@@ -1,0 +1,35 @@
+{
+  "OAuth": {
+    "Bridge": {
+      "AuthorityUrl": "http://localhost:8081/realms/orderprocessing-local/protocol/openid-connect/token",
+      "ClientId": "ordergateway-local",
+      "ClientSecret": "ordergateway-local-secret",
+      "Scope": "orderprocessing.order-api.orders.read orderprocessing.ingestexpress-api.orders.write orderprocessing.ingeststandard-api.orders.write orderprocessing.ingeststandard-api.customer-event.write"
+    }
+  },
+  "S3Config": {
+    "OrderBucketName": "localstack-us-east-1-orders"
+  },
+  "Clients": {
+    "OrderApiV0Client": {
+      "ApiKey": "local-dev-api-key-orders",
+      "BaseAddress": "http://localhost:50001",
+      "TimeoutSeconds": 10
+    },
+    "OrderApiV1Client": {
+      "BaseAddress": "http://localhost:50001",
+      "TimeoutSeconds": 10,
+      "OAuthProvider": "Bridge"
+    },
+    "IngestExpressApiV1Client": {
+      "BaseAddress": "http://localhost:50002",
+      "TimeoutSeconds": 10,
+      "OAuthProvider": "Bridge"
+    },
+    "IngestStandardApiV1Client": {
+      "BaseAddress": "http://localhost:50003",
+      "TimeoutSeconds": 10,
+      "OAuthProvider": "Bridge"
+    }
+  }
+}
