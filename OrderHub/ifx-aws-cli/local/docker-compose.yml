@@ -1,0 +1,271 @@
+services:
+  # LocalStack - AWS services emulator
+  localstack:
+    image: localstack/localstack:3
+    container_name: orderhub-localstack
+    ports:
+      - "4566:4566"  # LocalStack gateway
+    environment:
+      # Enable required AWS services
+      - SERVICES=s3,sqs,secretsmanager
+      # Disable external service calls
+      - DISABLE_EVENTS=1
+      # Data directory
+      - DATA_DIR=/var/lib/localstack/data
+      # Enable persistence - ONLY WORKS WITH SUBSCRIPTION
+      # - PERSISTENCE=1
+      # Debug logging (optional, can be removed in production)
+      - DEBUG=0
+      # Docker host for container networking
+      - DOCKER_HOST=unix:///var/run/docker.sock
+    volumes:
+      - ./.localstack_data:/var/lib/localstack
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - orderhub-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4566/_localstack/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # MongoDB - Document database
+  mongodb:
+    image: mongo:8
+    container_name: orderhub-mongodb
+    ports:
+      - "27018:27017"
+    environment:
+      # Database to create on startup
+      - MONGO_INITDB_DATABASE=orders
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - orderhub-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.runCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  # Redis - In-memory cache
+  redis:
+    image: redis:7-alpine
+    container_name: orderhub-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    networks:
+      - orderhub-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # Keycloak - Local OAuth2/OpenID provider for localstack development
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0
+    container_name: orderhub-keycloak
+    ports:
+      - "8081:8080"
+    environment:
+      - KEYCLOAK_ADMIN=admin
+      - KEYCLOAK_ADMIN_PASSWORD=admin
+      - KC_HEALTH_ENABLED=true
+      - KC_HTTP_ENABLED=true
+    command:
+      - start-dev
+      - --import-realm
+      - --hostname-strict=false
+    volumes:
+      - ./keycloak:/opt/keycloak/data/import
+    networks:
+      - orderhub-network
+    healthcheck:
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8080"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+  # LocalStack Init - One-time infrastructure provisioning
+  localstack-int:
+    image: localstack/localstack:3
+    container_name: orderhub-localstack-int
+    environment:
+      - AWS_ACCESS_KEY_ID=test-access-key-123
+      - AWS_SECRET_ACCESS_KEY=test-secret-access-key-456
+      - AWS_DEFAULT_REGION=us-east-1
+      - LOCALSTACK_HOST=localstack
+    networks:
+      - orderhub-network
+    depends_on:
+      localstack:
+        condition: service_healthy
+    entrypoint: /bin/sh
+    command:
+      - -c
+      - |
+        echo "========================================="
+        echo " Initializing LocalStack Resources"
+        echo "========================================="
+        
+        # Detect if LocalStack is already running (from order-gateway or external)
+        echo "[INFO] Detecting LocalStack..."
+        
+        # Try external LocalStack first
+        if python3 -c "import urllib.request; urllib.request.urlopen('http://host.docker.internal:4566/_localstack/health', timeout=2)" 2>/dev/null; then
+          echo "  ✓ Using existing LocalStack at host.docker.internal:4566"
+          export AWS_ENDPOINT_URL="http://host.docker.internal:4566"
+        # Try local docker-compose LocalStack
+        elif python3 -c "import urllib.request; urllib.request.urlopen('http://localstack:4566/_localstack/health', timeout=2)" 2>/dev/null; then
+          echo "  ✓ Using LocalStack from this docker-compose"
+          export AWS_ENDPOINT_URL="http://localstack:4566"
+        else
+          echo "  ✗ ERROR: LocalStack not accessible"
+          echo "  Please start LocalStack with: docker-compose up -d"
+          exit 1
+        fi
+        
+        sleep 5
+        echo ""
+        echo "[INFO] Creating S3 buckets..."
+        awslocal s3 mb s3://localstack-us-east-1-orders 2>/dev/null || echo "  Bucket already exists"
+        awslocal s3 mb s3://awsorderprocessingnp-us-east-1-orders 2>/dev/null || echo "  Bucket already exists"
+        echo ""
+        echo "[INFO] Creating SQS queues..."
+        # OrderHub queues
+        awslocal sqs create-queue --queue-name order-hub-express-order 2>/dev/null || true
+        awslocal sqs create-queue --queue-name order-hub-standard-order 2>/dev/null || true
+        awslocal sqs create-queue --queue-name order-hub-fulfillment-status 2>/dev/null || true
+        # OrderHub deadletter queues
+        awslocal sqs create-queue --queue-name order-hub-express-order-deadletter 2>/dev/null || true
+        awslocal sqs create-queue --queue-name order-hub-standard-order-deadletter 2>/dev/null || true
+        awslocal sqs create-queue --queue-name order-hub-fulfillment-status-deadletter 2>/dev/null || true
+        # OrderGateway queues
+        awslocal sqs create-queue --queue-name order-gateway-digital 2>/dev/null || true
+        awslocal sqs create-queue --queue-name order-gateway-shipment 2>/dev/null || true
+        # OrderGateway deadletter queues
+        awslocal sqs create-queue --queue-name order-gateway-digital-deadletter 2>/dev/null || true
+        awslocal sqs create-queue --queue-name order-gateway-shipment-deadletter 2>/dev/null || true
+        echo ""
+        echo "[INFO] Configuring SQS redrive policies..."
+        set_redrive() {
+          queue="$$1"
+          dlq="$$2"
+          policy=$$(printf '{"RedrivePolicy":"{\\"deadLetterTargetArn\\":\\"arn:aws:sqs:us-east-1:000000000000:%s\\",\\"maxReceiveCount\\":\\"3\\"}"}' "$$dlq")
+          printf '%s' "$$policy" > /tmp/redrive-attrs.json
+          queue_url=$$(awslocal sqs get-queue-url --queue-name "$$queue" --query QueueUrl --output text)
+          awslocal sqs set-queue-attributes --queue-url "$$queue_url" \
+            --attributes file:///tmp/redrive-attrs.json
+        }
+        # OrderHub redrive policies
+        set_redrive order-hub-express-order order-hub-express-order-deadletter
+        set_redrive order-hub-standard-order order-hub-standard-order-deadletter
+        set_redrive order-hub-fulfillment-status order-hub-fulfillment-status-deadletter
+        # OrderGateway redrive policies
+        set_redrive order-gateway-digital order-gateway-digital-deadletter
+        set_redrive order-gateway-shipment order-gateway-shipment-deadletter
+        echo ""
+        echo "[INFO] Purging DLQs..."
+        purge_queue() {
+          queue="$$1"
+          queue_url=$$(awslocal sqs get-queue-url --queue-name "$$queue" --query QueueUrl --output text)
+          awslocal sqs purge-queue --queue-url "$$queue_url" 2>/dev/null || true
+        }
+        # Purge all deadletter queues
+        purge_queue order-hub-express-order-deadletter
+        purge_queue order-hub-standard-order-deadletter
+        purge_queue order-hub-fulfillment-status-deadletter
+        purge_queue order-gateway-digital-deadletter
+        purge_queue order-gateway-shipment-deadletter
+        echo ""
+        echo "[INFO] Configuring S3 event notifications..."
+        cat > /tmp/s3-notification-config.json <<'EOF'
+        {
+          "QueueConfigurations": [
+            {
+              "QueueArn": "arn:aws:sqs:us-east-1:000000000000:order-hub-express-order",
+              "Events": ["s3:ObjectCreated:*"],
+              "Filter": {
+                "Key": {
+                  "FilterRules": [
+                    {
+                      "Name": "prefix",
+                      "Value": "EXPRESS/"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "QueueArn": "arn:aws:sqs:us-east-1:000000000000:order-hub-standard-order",
+              "Events": ["s3:ObjectCreated:*"],
+              "Filter": {
+                "Key": {
+                  "FilterRules": [
+                    {
+                      "Name": "prefix",
+                      "Value": "STANDARD/"
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        }
+        EOF
+        awslocal s3api put-bucket-notification-configuration \
+          --bucket localstack-us-east-1-orders \
+          --notification-configuration file:///tmp/s3-notification-config.json
+        echo "  ✓ S3 notifications configured for EXPRESS/ and STANDARD/ prefixes"
+        echo ""
+        echo "[INFO] Purging main order queues..."
+        echo "  Note: S3 bucket notification configuration may trigger test events."
+        echo "  Purging main queues to ensure workers start with a clean state."
+        purge_queue order-hub-express-order
+        purge_queue order-hub-standard-order
+        purge_queue order-hub-fulfillment-status
+        echo ""
+        echo "[SUCCESS] LocalStack resources initialized!"
+        echo "========================================="
+    restart: "no"
+
+  # MongoDB Migrations - One-time database setup
+  mongodb-migrations:
+    image: mongo:8
+    container_name: orderhub-mongodb-migrations
+    volumes:
+      - ../mongodb:/migrations
+    working_dir: /migrations
+    environment:
+      - MONGODB_URI=mongodb://mongodb:27017/
+    networks:
+      - orderhub-network
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    entrypoint: /bin/sh
+    command: -c "mongosh $$MONGODB_URI --file migrate.js"
+    restart: "no"
+
+# Named volumes for data persistence
+volumes:
+  localstack_data:
+    name: orderhub-localstack-data
+  mongodb_data:
+    name: orderhub-mongodb-data
+  redis_data:
+    name: orderhub-redis-data
+
+# Shared network for inter-service connectivity
+networks:
+  orderhub-network:
+    name: orderhub-network
+    driver: bridge

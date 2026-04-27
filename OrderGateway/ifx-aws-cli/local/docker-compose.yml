@@ -1,0 +1,196 @@
+services:
+  # LocalStack - AWS services emulator
+  # Only starts if profile "with-localstack" is used (when LocalStack not already running)
+  localstack:
+    image: localstack/localstack:3
+    container_name: order-gateway-localstack
+    profiles:
+      - with-localstack
+    ports:
+      - "4566:4566"  # LocalStack gateway
+    environment:
+      # Enable required AWS services
+      - SERVICES=sqs,s3
+      # Disable external service calls
+      - DISABLE_EVENTS=1
+      # Data directory
+      - DATA_DIR=/var/lib/localstack/data
+      # Enable persistence - ONLY WORKS WITH SUBSCRIPTION
+      # - PERSISTENCE=1
+      # Debug logging (optional)
+      - DEBUG=0
+      # Docker host for internal communication
+      - DOCKER_HOST=unix:///var/run/docker.sock
+    volumes:
+      - ./.localstack_data:/var/lib/localstack
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - orderevents-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4566/_localstack/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # Redis - In-memory cache
+  redis:
+    image: redis:7-alpine
+    container_name: order-gateway-redis
+    ports:
+      - "6380:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    networks:
+      - orderevents-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # LocalStack Init - One-time infrastructure provisioning
+  localstack-int:
+    image: localstack/localstack:3
+    container_name: order-gateway-localstack-int
+    environment:
+      - AWS_ACCESS_KEY_ID=test-access-key-123
+      - AWS_SECRET_ACCESS_KEY=test-secret-access-key-456
+      - AWS_DEFAULT_REGION=us-east-1
+      - LOCALSTACK_HOST=localstack
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - orderevents-network
+    depends_on:
+      localstack:
+        condition: service_healthy
+        required: false
+    entrypoint: /bin/sh
+    command:
+      - -c
+      - |
+        echo "========================================="
+        echo " Initializing LocalStack Resources"
+        echo "========================================="
+        
+        # Detect if LocalStack is already running (from order-api or external)
+        echo "[INFO] Detecting LocalStack..."
+        
+        # Try external LocalStack first
+        if python3 -c "import urllib.request; urllib.request.urlopen('http://host.docker.internal:4566/_localstack/health', timeout=2)" 2>/dev/null; then
+          echo "  ✓ Using existing LocalStack at host.docker.internal:4566"
+          export AWS_ENDPOINT_URL="http://host.docker.internal:4566"
+        # Try local docker-compose LocalStack
+        elif python3 -c "import urllib.request; urllib.request.urlopen('http://localstack:4566/_localstack/health', timeout=2)" 2>/dev/null; then
+          echo "  ✓ Using LocalStack from this docker-compose"
+          export AWS_ENDPOINT_URL="http://localstack:4566"
+        else
+          echo "  ✗ ERROR: LocalStack not accessible"
+          echo "  Please start LocalStack with: docker-compose --profile with-localstack up -d"
+          exit 1
+        fi
+        
+        sleep 5
+        echo ""
+        echo "[INFO] Creating S3 buckets..."
+        for bucket in \
+          localstack-us-east-1-orders \
+          awsordergatewaynp-us-east-1-orders; do
+          awslocal s3 mb "s3://$$bucket" 2>/dev/null || echo "  Bucket $$bucket already exists"
+        done
+        echo ""
+        echo "[INFO] Creating SQS queues..."
+        for queue in \
+          order-hub-standard-order \
+          order-hub-express-order \
+          order-hub-standard-order-deadletter \
+          order-hub-express-order-deadletter \
+          order-gateway-incoming \
+          order-gateway-incoming-deadletter; do
+          awslocal sqs create-queue --queue-name "$$queue" 2>/dev/null || true
+        done
+        echo ""
+        echo "[INFO] Configuring SQS redrive policies..."
+        set_redrive() {
+          queue="$$1"
+          dlq="$$2"
+          policy=$$(printf '{"RedrivePolicy":"{\\"deadLetterTargetArn\\":\\"arn:aws:sqs:us-east-1:000000000000:%s\\",\\"maxReceiveCount\\":\\"3\\"}"}' "$$dlq")
+          printf '%s' "$$policy" > /tmp/redrive-attrs.json
+          queue_url=$$(awslocal sqs get-queue-url --queue-name "$$queue" --query QueueUrl --output text)
+          awslocal sqs set-queue-attributes --queue-url "$$queue_url" \
+            --attributes file:///tmp/redrive-attrs.json
+        }
+        # Order API queues
+        set_redrive order-hub-standard-order order-hub-standard-order-deadletter
+        set_redrive order-hub-express-order order-hub-express-order-deadletter
+
+        # OrderGateway queues
+        set_redrive order-gateway-incoming order-gateway-incoming-deadletter
+        echo ""
+        echo "[INFO] Purging DLQs..."
+        purge_queue() {
+          queue="$$1"
+          queue_url=$$(awslocal sqs get-queue-url --queue-name "$$queue" --query QueueUrl --output text)
+          awslocal sqs purge-queue --queue-url "$$queue_url" 2>/dev/null || true
+        }
+        purge_queue order-hub-standard-order-deadletter
+        purge_queue order-hub-express-order-deadletter
+        purge_queue order-gateway-incoming-deadletter
+        echo ""
+        echo "[INFO] Configuring S3 event notifications..."
+        cat > /tmp/s3-notification-config.json <<'EOF'
+        {
+          "QueueConfigurations": [
+            {
+              "QueueArn": "arn:aws:sqs:us-east-1:000000000000:order-hub-express-order",
+              "Events": ["s3:ObjectCreated:*"],
+              "Filter": {
+                "Key": {
+                  "FilterRules": [
+                    {
+                      "Name": "prefix",
+                      "Value": "EXPRESS/"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "QueueArn": "arn:aws:sqs:us-east-1:000000000000:order-hub-standard-order",
+              "Events": ["s3:ObjectCreated:*"],
+              "Filter": {
+                "Key": {
+                  "FilterRules": [
+                    {
+                      "Name": "prefix",
+                      "Value": "STANDARD/"
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        }
+        EOF
+        awslocal s3api put-bucket-notification-configuration \
+          --bucket localstack-us-east-1-orders \
+          --notification-configuration file:///tmp/s3-notification-config.json
+        echo "  ✓ S3 notifications configured for EXPRESS/ and STANDARD/ prefixes"
+        echo ""
+        echo "[SUCCESS] LocalStack resources initialized!"
+        echo "========================================="
+    restart: "no"
+
+# Named volumes for data persistence
+volumes:
+  redis_data:
+    name: order-gateway-redis-data
+
+# Shared network for inter-service communication
+networks:
+  orderevents-network:
+    name: order-gateway-network
+    driver: bridge

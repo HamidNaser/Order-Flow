@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>OrderHub.IngestExpress.Api</name>
+    </assembly>
+    <members>
+        <member name="T:OrderHub.IngestExpress.Api.Configuration.Swagger.SwaggerHostFactory">
+            <remarks>
+            https://github.com/domaindrivendev/Swashbuckle.AspNetCore/blob/master/docs/configure-and-customize-cli.md#use-the-cli-tool-with-a-custom-host-configuration
+            </remarks>
+        </member>
+        <member name="T:OrderHub.IngestExpress.Api.Controllers.V1.DemoOrderController">
+            <summary>Dedicated demo ingest requests for testing and demonstration purposes.</summary>
+        </member>
+        <member name="M:OrderHub.IngestExpress.Api.Controllers.V1.DemoOrderController.#ctor(OrderHub.Common.Managers.IOrderIngestManager,OrderHub.Common.FeatureToggle.IFeatureToggle)">
+            <summary>Dedicated demo ingest requests for testing and demonstration purposes.</summary>
+        </member>
+        <member name="M:OrderHub.IngestExpress.Api.Controllers.V1.DemoOrderController.AddDigitalOrder(OrderHub.Contracts.Ingest.AddDigitalOrderRequest)">
+            <summary>Add a NEW digital order.</summary>
+            <remarks>POST a valid digital order request body which responds with an Accepted new OrderId.</remarks>
+            <response code="202">Accepted - Operation Successful. Order will eventually be accessible.</response>
+        </member>
+        <member name="M:OrderHub.IngestExpress.Api.Controllers.V1.DemoOrderController.AddShipmentOrder(OrderHub.Contracts.Ingest.AddShipmentOrderRequest)">
+            <summary>Add a NEW standard order.</summary>
+            <remarks>POST a valid standard order request body which responds with an Accepted new OrderId.</remarks>
+            <response code="202">Accepted - Operation Successful. Order will eventually be accessible.</response>
+        </member>
+    </members>
+</doc>

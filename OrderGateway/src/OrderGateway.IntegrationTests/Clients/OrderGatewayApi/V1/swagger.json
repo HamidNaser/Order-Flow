@@ -1,0 +1,412 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "OrderGatewayApi",
+    "version": "v1"
+  },
+  "paths": {
+    "/api/v1/event-handler/shipment": {
+      "post": {
+        "tags": [
+          "EventHandler"
+        ],
+        "operationId": "HandleOrderEvent",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/OrderGateway.Common.Models.Api.OrderEventRequest"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderGateway.Common.Models.HandlerResultDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/publish-event/shipment": {
+      "post": {
+        "tags": [
+          "PublishEvent"
+        ],
+        "operationId": "PublishOrderEvent",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/OrderGateway.Common.Models.Events.OrderEvent"
+                  }
+                ]
+              }
+            },
+            "text/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/OrderGateway.Common.Models.Events.OrderEvent"
+                  }
+                ]
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/OrderGateway.Common.Models.Events.OrderEvent"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/redis": {
+      "get": {
+        "tags": [
+          "RedisCache"
+        ],
+        "operationId": "GetRedisCache",
+        "parameters": [
+          {
+            "name": "key",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderGateway.Common.Models.RedisCacheGetResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "RedisCache"
+        ],
+        "operationId": "SetRedisCache",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/OrderGateway.Common.Models.RedisCacheSetRequest"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "RedisCache"
+        ],
+        "operationId": "DeleteRedisCache",
+        "parameters": [
+          {
+            "name": "key",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Order.MessagePump.Messages.MessageResultAction": {
+        "enum": [
+          "complete",
+          "retry",
+          "poison"
+        ],
+        "type": "string"
+      },
+      "OrderGateway.Common.Models.Api.OrderEventRequest": {
+        "required": [
+          "event"
+        ],
+        "type": "object",
+        "properties": {
+          "event": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/OrderGateway.Common.Models.Events.OrderEvent"
+              }
+            ]
+          },
+          "approximateReceiveCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "OrderGateway.Common.Models.Events.OrderDirection": {
+        "enum": [
+          "unknown",
+          "toconsumer",
+          "fromconsumer"
+        ],
+        "type": "string"
+      },
+      "OrderGateway.Common.Models.Events.OrderEvent": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "nullable": true
+          },
+          "subType": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdOn": {
+            "type": "string",
+            "nullable": true
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "videoMedia": {
+            "type": "string",
+            "nullable": true,
+            "readOnly": true
+          },
+          "correlationId": {
+            "type": "string",
+            "nullable": true,
+            "readOnly": true
+          },
+          "userContactType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/OrderGateway.Common.Models.Events.UserContactType"
+              }
+            ],
+            "readOnly": true
+          },
+          "direction": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/OrderGateway.Common.Models.Events.OrderDirection"
+              }
+            ],
+            "readOnly": true
+          },
+          "contact": {
+            "type": "string",
+            "nullable": true,
+            "readOnly": true
+          },
+          "customerId": {
+            "type": "integer",
+            "format": "int32",
+            "readOnly": true
+          },
+          "userId": {
+            "type": "integer",
+            "format": "int32",
+            "readOnly": true
+          },
+          "storeId": {
+            "type": "integer",
+            "format": "int32",
+            "readOnly": true
+          },
+          "approximateReceiveCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "classification": {
+            "type": "string",
+            "nullable": true,
+            "readOnly": true
+          },
+          "isStandardPriority": {
+            "type": "boolean",
+            "readOnly": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "OrderGateway.Common.Models.Events.UserContactType": {
+        "enum": [
+          "phone",
+          "address"
+        ],
+        "type": "string"
+      },
+      "OrderGateway.Common.Models.HandlerResultDto": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Order.MessagePump.Messages.MessageResultAction"
+              }
+            ]
+          },
+          "details": {
+            "type": "string",
+            "nullable": true
+          },
+          "backoff": {
+            "type": "string",
+            "format": "time-span",
+            "nullable": true
+          },
+          "exceptionMessage": {
+            "type": "string",
+            "nullable": true
+          },
+          "isSuccess": {
+            "type": "boolean"
+          },
+          "stepContext": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/OrderGateway.Common.Processing.Abstractions.StepContext"
+              }
+            ],
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "OrderGateway.Common.Models.RedisCacheGetResponse": {
+        "required": [
+          "value"
+        ],
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "OrderGateway.Common.Models.RedisCacheSetRequest": {
+        "required": [
+          "key",
+          "value"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "nullable": true
+          },
+          "value": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "OrderGateway.Common.Processing.Abstractions.StepContext": {
+        "type": "object",
+        "properties": {
+          "messageContent": {
+            "type": "string",
+            "nullable": true
+          },
+          "orderId": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "securitySchemes": {
+      "ApiKeyPolicy": {
+        "type": "apiKey",
+        "description": "Enter API Key",
+        "name": "x-api-key",
+        "in": "header"
+      }
+    }
+  },
+  "security": [
+    {
+      "ApiKeyPolicy": [ ]
+    }
+  ],
+  "tags": [
+    {
+      "name": "EventHandler",
+      "description": "Integration test endpoints for processing events through handler pipelines.\r\nNot intended for production use - designed for automated integration testing only."
+    }
+  ]
+}

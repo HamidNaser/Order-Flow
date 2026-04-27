@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <UserSecretsId>8ac250ea-eb62-482d-8e9f-fef9d28e0e51</UserSecretsId>
+        <AssemblyName>OrderHub.IngestStandard.Worker</AssemblyName>
+        <RootNamespace>OrderHub.IngestStandard.Worker</RootNamespace>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\OrderHub.Common\OrderHub.Common.csproj" />
+    </ItemGroup>
+    <ItemGroup>
+        <None Include="..\OrderHub.Common\appsettings.*.json" Link="%(Filename)%(Extension)">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </None>
+    </ItemGroup>
+</Project>

@@ -1,0 +1,817 @@
+﻿{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "OrderHubIngestExpressApi",
+    "description": "The Order Hub Ingest Express API for ingesting express priority orders.",
+    "version": "1.0"
+  },
+  "paths": {
+    "/api/demo/order/text": {
+      "post": {
+        "tags": [
+          "Demo Order"
+        ],
+        "summary": "Add a NEW text order.",
+        "description": "POST a valid text order request body which responds with an Accepted new OrderId.",
+        "operationId": "DemoAddDigitalOrder",
+        "requestBody": {
+          "content": {
+            "application/vnd.order.v1+json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddDigitalOrderRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted - Operation Successful. Order will eventually be accessible.",
+            "headers": {
+              "X-Order-Media-Type": {
+                "description": "The major API version and format information.",
+                "schema": {
+                  "type": "string"
+                },
+                "example": "order.v1; format=json"
+              }
+            },
+            "content": {
+              "application/vnd.order.v1+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "headers": {
+              "X-Order-Media-Type": {
+                "description": "The major API version and format information.",
+                "schema": {
+                  "type": "string"
+                },
+                "example": "order.v1; format=json"
+              }
+            },
+            "content": {
+              "application/vnd.order.v1+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DuplicateOrderResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "headers": {
+              "X-Order-Media-Type": {
+                "description": "The major API version and format information.",
+                "schema": {
+                  "type": "string"
+                },
+                "example": "order.v1; format=json"
+              }
+            },
+            "content": {
+              "application/vnd.order.v1+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "headers": {
+              "X-Order-Media-Type": {
+                "description": "The major API version and format information.",
+                "schema": {
+                  "type": "string"
+                },
+                "example": "order.v1; format=json"
+              }
+            },
+            "content": {
+              "application/vnd.order.v1+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "RawToken": [ ]
+          }
+        ]
+      }
+    },
+    "/api/demo/order/shipment": {
+      "post": {
+        "tags": [
+          "Demo Order"
+        ],
+        "summary": "Add a NEW shipment order.",
+        "description": "POST a valid shipment order request body which responds with an Accepted new OrderId.",
+        "operationId": "DemoAddShipmentOrder",
+        "requestBody": {
+          "content": {
+            "application/vnd.order.v1+json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddShipmentOrderRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted - Operation Successful. Order will eventually be accessible.",
+            "headers": {
+              "X-Order-Media-Type": {
+                "description": "The major API version and format information.",
+                "schema": {
+                  "type": "string"
+                },
+                "example": "order.v1; format=json"
+              }
+            },
+            "content": {
+              "application/vnd.order.v1+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "headers": {
+              "X-Order-Media-Type": {
+                "description": "The major API version and format information.",
+                "schema": {
+                  "type": "string"
+                },
+                "example": "order.v1; format=json"
+              }
+            },
+            "content": {
+              "application/vnd.order.v1+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DuplicateOrderResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "headers": {
+              "X-Order-Media-Type": {
+                "description": "The major API version and format information.",
+                "schema": {
+                  "type": "string"
+                },
+                "example": "order.v1; format=json"
+              }
+            },
+            "content": {
+              "application/vnd.order.v1+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "headers": {
+              "X-Order-Media-Type": {
+                "description": "The major API version and format information.",
+                "schema": {
+                  "type": "string"
+                },
+                "example": "order.v1; format=json"
+              }
+            },
+            "content": {
+              "application/vnd.order.v1+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "RawToken": [ ]
+          }
+        ]
+      }
+    },
+    "/api/order/text": {
+      "post": {
+        "tags": [
+          "Order"
+        ],
+        "operationId": "AddDigitalOrder",
+        "requestBody": {
+          "content": {
+            "application/vnd.order.v1+json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddDigitalOrderRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted",
+            "headers": {
+              "X-Order-Media-Type": {
+                "description": "The major API version and format information.",
+                "schema": {
+                  "type": "string"
+                },
+                "example": "order.v1; format=json"
+              }
+            },
+            "content": {
+              "application/vnd.order.v1+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "headers": {
+              "X-Order-Media-Type": {
+                "description": "The major API version and format information.",
+                "schema": {
+                  "type": "string"
+                },
+                "example": "order.v1; format=json"
+              }
+            },
+            "content": {
+              "application/vnd.order.v1+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DuplicateOrderResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "headers": {
+              "X-Order-Media-Type": {
+                "description": "The major API version and format information.",
+                "schema": {
+                  "type": "string"
+                },
+                "example": "order.v1; format=json"
+              }
+            },
+            "content": {
+              "application/vnd.order.v1+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "headers": {
+              "X-Order-Media-Type": {
+                "description": "The major API version and format information.",
+                "schema": {
+                  "type": "string"
+                },
+                "example": "order.v1; format=json"
+              }
+            },
+            "content": {
+              "application/vnd.order.v1+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "RawToken": [ ]
+          }
+        ]
+      }
+    },
+    "/api/order/shipment": {
+      "post": {
+        "tags": [
+          "Order"
+        ],
+        "operationId": "AddShipmentOrder",
+        "requestBody": {
+          "content": {
+            "application/vnd.order.v1+json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddShipmentOrderRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted",
+            "headers": {
+              "X-Order-Media-Type": {
+                "description": "The major API version and format information.",
+                "schema": {
+                  "type": "string"
+                },
+                "example": "order.v1; format=json"
+              }
+            },
+            "content": {
+              "application/vnd.order.v1+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "headers": {
+              "X-Order-Media-Type": {
+                "description": "The major API version and format information.",
+                "schema": {
+                  "type": "string"
+                },
+                "example": "order.v1; format=json"
+              }
+            },
+            "content": {
+              "application/vnd.order.v1+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DuplicateOrderResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "headers": {
+              "X-Order-Media-Type": {
+                "description": "The major API version and format information.",
+                "schema": {
+                  "type": "string"
+                },
+                "example": "order.v1; format=json"
+              }
+            },
+            "content": {
+              "application/vnd.order.v1+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "headers": {
+              "X-Order-Media-Type": {
+                "description": "The major API version and format information.",
+                "schema": {
+                  "type": "string"
+                },
+                "example": "order.v1; format=json"
+              }
+            },
+            "content": {
+              "application/vnd.order.v1+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "RawToken": [ ]
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AddDigitalOrderRequest": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/OrderRequest"
+          },
+          {
+            "required": [
+              "fromPhoneNumber",
+              "toPhoneNumber"
+            ],
+            "type": "object",
+            "properties": {
+              "toPhoneNumber": {
+                "minLength": 1,
+                "type": "string",
+                "description": "The recipient's phone number for the text order.\r\n<remarks>\r\nAny valid (not reserved/special) phone number. See examples.</remarks>",
+                "example": "(616) 323-4454 or +13234345676 or 616-676-9087 or +1 616-676-9087"
+              },
+              "fromPhoneNumber": {
+                "minLength": 1,
+                "type": "string",
+                "description": "The sender's phone number for the text order.\r\n<remarks>\r\nAny valid (not reserved/special) phone number. See examples.</remarks>",
+                "example": "(616) 323-4454 or +13234345676 or 616-676-9087 or +1 616-676-9087"
+              }
+            },
+            "additionalProperties": false
+          }
+        ],
+        "description": "The text order request model for the ingestion APIs.\r\n<remarks>\r\nThis model inherits common order properties from the base OrderRequest model.\r\nA text order requires Content.</remarks>"
+      },
+      "AddShipmentOrderRequest": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/OrderRequest"
+          },
+          {
+            "required": [
+              "from",
+              "to"
+            ],
+            "type": "object",
+            "properties": {
+              "to": {
+                "minItems": 1,
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/AddressInfo"
+                },
+                "description": "The list of `To` recipients for the shipment order.\r\n<remarks>\r\nEach object in this array must contain a recipient's address.\r\nEach object in the array may optionally contain a recipient's display name.</remarks>"
+              },
+              "from": {
+                "$ref": "#/components/schemas/AddressInfo"
+              },
+              "orderTitle": {
+                "type": "string",
+                "description": "The title or heading for the shipment order.\r\n<remarks>\r\nThe order body is set using the Content field.</remarks>",
+                "nullable": true,
+                "example": "Re: I'd like to buy this car."
+              }
+            },
+            "additionalProperties": false
+          }
+        ],
+        "description": "The shipment order request model for the ingestion APIs.\r\n<remarks>\r\nThis model inherits common order properties from the base OrderRequest model.</remarks>"
+      },
+      "AddressInfo": {
+        "required": [
+          "address"
+        ],
+        "type": "object",
+        "properties": {
+          "address": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The address for a party (sender or recipient) tied to the shipment order.",
+            "example": "test123@domainname.com"
+          },
+          "name": {
+            "type": "string",
+            "description": "An optional display name for a party (sender or recipient) tied to the shipment order.\r\n<remarks>\r\nThe field is a component of the RFC 5322 mailbox format.\r\nRFC 5322 mailbox format examples with `Name` in bold...<list><item><description>\"<b>John Doe</b>\" <john.doe@domainname.com></description></item><item><description>\"<b>Smith, Jane (CAI - Atlanta)</b>\" <jane.smith@domainname.com></description></item></list>\r\nThis value should NOT include the wrapping double quotes. Please omit them as this will be handled automatically.</remarks>",
+            "nullable": true,
+            "example": "\"John Doe\" or \"Smith, Jane (CAI - Atlanta)\""
+          }
+        },
+        "additionalProperties": false
+      },
+      "DuplicateOrderResponse": {
+        "required": [
+          "id"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The unique identifier for the existing order this request was a duplicate of",
+            "example": "68e433dd6d302b9378615fd9"
+          }
+        },
+        "additionalProperties": false,
+        "description": "The duplicate order response model for the ingestion APIs. This is returned when an ingestion request comes in that matches an already ingested order.\r\n<remarks>\r\nMatches are determined by order merchant information, namely the Channel Type, Merchant's Name, and Merchant's Order ID.</remarks>"
+      },
+      "FulfillmentStatus": {
+        "enum": [
+          "SUCCESS",
+          "IN_PROGRESS",
+          "FAILURE"
+        ],
+        "type": "string",
+        "description": "Represents the current delivery status of a order message.\r\n<remarks>\r\nWhen set to `SUCCESS`, the OrderFulfilledDate field is required.</remarks>"
+      },
+      "HttpValidationProblemDetails": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ProblemDetails"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "errors": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "nullable": true
+              }
+            },
+            "additionalProperties": { }
+          }
+        ]
+      },
+      "Merchant": {
+        "required": [
+          "name",
+          "orderId"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "$ref": "#/components/schemas/MerchantName"
+          },
+          "orderId": {
+            "maxLength": 255,
+            "minLength": 1,
+            "type": "string",
+            "description": "The unique identifier for this order in the merchant's system."
+          },
+          "sourceApplication": {
+            "type": "string",
+            "description": "Name of the source application that initiated this order request from the Merchant.",
+            "nullable": true,
+            "example": "Mobile App, Desktop App"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Contains information about the merchant and source of the order."
+      },
+      "MerchantName": {
+        "enum": [
+          "PRIME",
+          "FRESH",
+          "INTEGRATION_TEST"
+        ],
+        "type": "string",
+        "description": "Identifies the order merchant or source system that handled the order."
+      },
+      "OrderFlowType": {
+        "enum": [
+          "INCOMING",
+          "OUTGOING"
+        ],
+        "type": "string",
+        "description": "Specifies the direction of order flow between the business and the customer.\r\n<remarks>\r\nFrom the user perspective:<list type=\"bullet\"><item><description>`INCOMING` - From the customer; To the user.</description></item><item><description>`OUTGOING` - From the user; To the customer.</description></item></list></remarks>"
+      },
+      "OrderRequest": {
+        "required": [
+          "customerId",
+          "fulfillmentStatus",
+          "merchant",
+          "orderFlow",
+          "orderPlacedDate",
+          "storeId"
+        ],
+        "type": "object",
+        "properties": {
+          "storeId": {
+            "maxLength": 50,
+            "minLength": 1,
+            "type": "string",
+            "description": "The unique identifier for the common organization (store).",
+            "example": "bf11a6b9-b991-4360-ba46-f82e23a3273d, CoOrgTestId1, CoOrgTestId2"
+          },
+          "customerId": {
+            "maxLength": 50,
+            "minLength": 1,
+            "type": "string",
+            "description": "The unique identifier for the customer (connected customer) involved in this order.",
+            "example": "bf11a6b9-b991-4360-ba46-f82e23a3273d"
+          },
+          "customerName": {
+            "type": "string",
+            "description": "The full name of the customer pertaining to this order.",
+            "nullable": true,
+            "example": "John Smith"
+          },
+          "agentId": {
+            "type": "string",
+            "description": "The unique identifier for the common user (bridge) involved in this order.",
+            "nullable": true,
+            "example": "BRIDGE_ID123"
+          },
+          "agentName": {
+            "type": "string",
+            "description": "The full name of the common user.",
+            "nullable": true,
+            "example": "Jane Smith"
+          },
+          "orderFlow": {
+            "$ref": "#/components/schemas/OrderFlowType"
+          },
+          "content": {
+            "type": "string",
+            "description": "The primary content of the order. Common content field between all order types.\r\n<remarks><list type=\"bullet\"><item><description>`STANDARD` - standard order content</description></item><item><description>`TEXT` - digital order content</description></item></list></remarks>",
+            "nullable": true
+          },
+          "mediaIds": {
+            "maxItems": 50,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Optional list of Common Order Media identifiers associated with this order.\r\n<remarks>\r\nMaximum of 50 media IDs allowed, with each ID limited to 50 characters.\r\n</remarks>",
+            "nullable": true,
+            "example": [
+              "media123",
+              "media456"
+            ]
+          },
+          "orderPlacedDate": {
+            "type": "string",
+            "description": "The date and time (with offset) when the order was sent.",
+            "format": "date-time",
+            "example": "2024-01-15T09:00:00-05:00 or 2024-01-15T10:30:00Z"
+          },
+          "orderFulfilledDate": {
+            "type": "string",
+            "description": "The date and time (with offset) when the order was successfully delivered.\r\n\r\n<remarks>\r\nIf FulfillmentStatus is set to `SUCCESS`, this field becomes required and must be provided.\r\nFor other statuses, this field should be omitted or null.\r\n</remarks>",
+            "format": "date-time",
+            "nullable": true,
+            "example": "2024-01-15T09:00:00-05:00 or 2024-01-15T10:30:15Z"
+          },
+          "merchant": {
+            "$ref": "#/components/schemas/Merchant"
+          },
+          "tenantId": {
+            "type": "string",
+            "description": "The unique identifier for the (common organization) tenant.",
+            "nullable": true,
+            "example": "TENANT123"
+          },
+          "fulfillmentStatus": {
+            "$ref": "#/components/schemas/FulfillmentStatus"
+          },
+          "platform": {
+            "$ref": "#/components/schemas/Platform"
+          }
+        },
+        "additionalProperties": false,
+        "description": "The base order request model for the ingestion APIs.\r\n<remarks>\r\nThis model has common order properties shared across all channel types.</remarks>"
+      },
+      "OrderResponse": {
+        "required": [
+          "id"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The unique identifier for the order.",
+            "example": "68e433dd6d302b9378615fd9"
+          }
+        },
+        "additionalProperties": false,
+        "description": "The order response model for the ingestion APIs.\r\n<remarks>\r\nThis model returns the unique identifier for the order.</remarks>"
+      },
+      "Platform": {
+        "required": [
+          "id"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/PlatformId"
+          },
+          "boid": {
+            "type": "string",
+            "description": "Business Operation Identifier - the platform-specific unique instance identifier for the platform (store identifier).",
+            "nullable": true,
+            "example": "BO_SALES_456789"
+          },
+          "customerId": {
+            "type": "string",
+            "description": "The platform-specific unique identifier for the customer.",
+            "nullable": true,
+            "example": "CUST_789012"
+          },
+          "customerName": {
+            "type": "string",
+            "description": "The platform-specific full name for the customer.",
+            "nullable": true,
+            "example": "John Smith"
+          },
+          "agentId": {
+            "type": "string",
+            "description": "The platform-specific unique identifier for the user.",
+            "nullable": true,
+            "example": "SALES_REP_345"
+          },
+          "agentName": {
+            "type": "string",
+            "description": "The platform-specific full name for the user.",
+            "nullable": true,
+            "example": "Jane Smith"
+          },
+          "leadId": {
+            "type": "string",
+            "description": "The platform-specific unique identifier for a lead opportunity.",
+            "nullable": true,
+            "example": "SALES_LEAD_001, REPAIR_ORDER_002"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Provides business context and platform (Business Unit) information related to a order."
+      },
+      "PlatformId": {
+        "enum": [
+          "PRIME_RETAIL",
+          "FRESH_GROCERY"
+        ],
+        "type": "string",
+        "description": "The unique identifier for the business platform. Required when any other Platform field is set."
+      },
+      "ProblemDetails": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "nullable": true
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "detail": {
+            "type": "string",
+            "nullable": true
+          },
+          "instance": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": { }
+      }
+    },
+    "securitySchemes": {
+      "RawToken": {
+        "type": "http",
+        "description": "Enter JWT Bearer Token (Please use this exclusively for authenticating using OAuth <Bridge> within SwaggerUI).",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      },
+      "IngestExpressOrdersPolicy": {
+        "type": "oauth2",
+        "description": "Please use RawToken scheme when authenticating using OAuth <Bridge> within SwaggerUI.",
+        "flows": {
+          "clientCredentials": {
+            "tokenUrl": "http://localhost:8081/realms/orderprocessing-local/v1/token",
+            "scopes": {
+              "orderprocessing.ingestexpress-api.orders.write": ""
+            }
+          }
+        }
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Demo Order",
+      "description": "Dedicated demo ingest requests for testing and demonstration purposes."
+    }
+  ]
+}
