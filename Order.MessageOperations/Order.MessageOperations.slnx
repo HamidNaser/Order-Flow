@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="Order.MessageOperations.Api/Order.MessageOperations.Api.csproj" />
+  <Project Path="Order.MessageOperations.Mcp/Order.MessageOperations.Mcp.csproj" />
+</Solution>

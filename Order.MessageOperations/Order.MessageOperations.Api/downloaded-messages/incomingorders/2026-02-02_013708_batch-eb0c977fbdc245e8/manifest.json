@@ -1,0 +1,11 @@
+﻿{
+  "BatchId": "2026-02-02_013708_batch-eb0c977fbdc245e8",
+  "QueueType": "IncomingOrders",
+  "CreatedAt": "2026-02-02T01:37:08.952114Z",
+  "SourceDlq": "qa-order-gateway-incoming-deadletter",
+  "MessageCount": 2,
+  "MessageIds": [
+    "df9838ca-8d95-4417-832b-f006fa805044",
+    "63862177-8227-44fc-8911-241df563090a"
+  ]
+}

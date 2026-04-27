@@ -1,0 +1,48 @@
+﻿{
+  "MessageId": "63862177-8227-44fc-8911-241df563090a",
+  "Body": "eyJUeXBlIjoiT3JkZXIiLCJTdWJUeXBlIjoiT3V0Ym91bmQgb3JkZXIgZnJvbSBDUk0iLCJEZXNjcmlwdGlvbiI6IkRlYXIgTWFyaWx5bmUsXHJcblRoYW5rIHlvdSBmb3IgeW91ciBkaWdpdGFsIHN1YnNjcmlwdGlvbiBvcmRlciAjT1JELTIwMjYtMDE0My4gWW91ciBhY2Nlc3MgaGFzIGJlZW4gYWN0aXZhdGVkLlxyXG5TdWJzY3JpcHRpb246IEVudGVycHJpc2UgQW5hbHl0aWNzIFN1aXRlIC0gQW5udWFsIExpY2Vuc2VcclxuQWN0aXZhdGlvbiBLZXk6IEVBLTIwMjYtS1MtNzU4OFxyXG5BY2Nlc3MgUG9ydGFsOiBodHRwczovL3BvcnRhbC5zdG9yZS1leGFtcGxlLmNvbVxyXG5TdXBwb3J0OiBzdXBwb3J0QHN0b3JlLWV4YW1wbGUuY29tIiwiQ3JlYXRlZE9uIjoiMi8xLzIwMjYgNzowNjowNSBBTSIsIk1ldGFkYXRhIjp7IlN0b3JlSWQiOiIxNzIwNCIsIkNvbnRhY3RJZCI6IjEzODI2NzM5MDIiLCJPcmRlcklkIjoiMTk1OTE1OTY2NCIsIk9yZGVySXRlbUlkIjoiMjU3MDE5Mjc2NjAiLCJNZXNzYWdlSWQiOiI5ZGE4NTEwZi1kMTFhLTQyN2YtYWIwYi01M2RmNmYzZmNiZTIiLCJPcmRlclRpdGxlIjoiRGlnaXRhbCBPcmRlciAtIEVudGVycHJpc2UgQW5hbHl0aWNzIFN1aXRlIiwiUmVjaXBpZW50QWRkcmVzcyI6Im1hcmlseW5lQGV4YW1wbGUuY29tIiwiU2VuZGVyQWRkcmVzcyI6Im9yZGVyc0BzdG9yZS1leGFtcGxlLmNvbSIsIk9yZGVyRmxvd1R5cGUiOiJPdXRib3VuZCIsIk9yZGVyUmVmZXJlbmNlSWQiOiIzMjFmNWQ3OS0zY2ZmLWYwMTEtYTMxNS0wMDUwNTY4ODQxZDQ4IiwiQ2xhc3NpZmljYXRpb24iOiJBdXRvT3JkZXIiLCJIYXNBdHRhY2htZW50cyI6IkZhbHNlIiwiVmlkZW9NZWRpYSI6IiIsIkNvcnJlbGF0aW9uSWQiOiIiLCJPcmlnaW5hbE1lc3NhZ2UiOiI8ZGl2IHN0eWxlPSdmb250LWZhbWlseTogQXJpYWw7IGZvbnQtc2l6ZTogMTRweDsnPjxoMj5EaWdpdGFsIE9yZGVyIENvbmZpcm1hdGlvbjwvaDI+PHA+RGVhciBNYXJpbHluZSw8L3A+PHA+VGhhbmsgeW91IGZvciB5b3VyIGRpZ2l0YWwgc3Vic2NyaXB0aW9uIG9yZGVyIDxzdHJvbmc+I09SRC0yMDI2LTAxNDM8L3N0cm9uZz4uPC9wPjxwPllvdXIgYWNjZXNzIGhhcyBiZWVuIGFjdGl2YXRlZCBpbW1lZGlhdGVseS48L3A+PGgzPlN1YnNjcmlwdGlvbiBEZXRhaWxzPC9oMz48dWw+PGxpPkVudGVycHJpc2UgQW5hbHl0aWNzIFN1aXRlIC0gQW5udWFsIExpY2Vuc2U8L2xpPjxsaT5BY3RpdmF0aW9uIEtleTogPGNvZGU+RUEtMjAyNi1LUy03NTg4PC9jb2RlPjwvbGk+PC91bD48cD5BY2Nlc3MgeW91ciBzdWJzY3JpcHRpb24gYXQgPGEgaHJlZj0naHR0cHM6Ly9wb3J0YWwuc3RvcmUtZXhhbXBsZS5jb20nPnBvcnRhbC5zdG9yZS1leGFtcGxlLmNvbTwvYT48L3A+PHA+SWYgeW91IG5lZWQgaGVscCwgY29udGFjdCA8YSBocmVmPSdtYWlsdG86c3VwcG9ydEBzdG9yZS1leGFtcGxlLmNvbSc+c3VwcG9ydEBzdG9yZS1leGFtcGxlLmNvbTwvYT48L3A+PGhyPjxwIHN0eWxlPSdjb2xvcjogIzg4ODsgZm9udC1zaXplOiAxMHB4Oyc+U3RvcmUgRXhhbXBsZSBJbmMuIHwgNTcwMCBDb21tZXJjZSBCbHZkIHwgTWlzc2lvbiwgS1MgNjYyMDIgfCAoODAwKSA1NTUtMDE0MjwvcD48L2Rpdj4ifX0=",
+  "MessageAttributes": {
+    "EventId": {
+      "StringValue": "df6f1d63-6282-4306-b4ca-a706ac7af6f8",
+      "DataType": "String"
+    },
+    "MessageId": {
+      "StringValue": "9da8510f-d11a-427f-ab0b-53df6f3fcbe2",
+      "DataType": "String"
+    },
+    "Reason": {
+      "StringValue": "Exceeded max retries (3) for Order event. Poisoning message.",
+      "DataType": "String"
+    },
+    "Source": {
+      "StringValue": "OrderProcessing",
+      "DataType": "String"
+    },
+    "SubType": {
+      "StringValue": "Outbound order from CRM",
+      "DataType": "String"
+    },
+    "TimeStamp": {
+      "StringValue": "2026-02-01T07:06:07.308945Z",
+      "DataType": "String"
+    },
+    "Type": {
+      "StringValue": "Order",
+      "DataType": "String"
+    },
+    "Version": {
+      "StringValue": "1.0",
+      "DataType": "String"
+    }
+  },
+  "Attributes": {
+    "SenderId": "AROATDMFJ3XKMQKAKZ3ZC:038d115d88084299b0d8088dce6df4af",
+    "ApproximateFirstReceiveTimestamp": "1769992642599",
+    "ApproximateReceiveCount": "6618",
+    "SentTimestamp": "1769929728023"
+  },
+  "MessageGroupId": null,
+  "ReceiptHandle": "AQEBr0k6k02zlBFa29jj+AR+eAa7xgsneeGc8urPEhWSsnhXrjaoImRVDUa72H0bjQWLqjflgvHQx/NB4XK3URCpXyhPRxo3eSvdUfkDkYjd",
+  "DownloadedAt": "2026-02-02T01:37:08.847762Z",
+  "SourceDlq": "qa-order-gateway-incoming-deadletter"
+}
