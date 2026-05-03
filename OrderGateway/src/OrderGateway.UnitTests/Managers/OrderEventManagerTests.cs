@@ -20,10 +20,11 @@ public class OrderEventManagerTests
     private readonly ICloudContentService cloudContentServiceMock = Substitute.For<ICloudContentService>();
     private readonly IOrderService orderServiceMock = Substitute.For<IOrderService>();
     private readonly IContentSizeMetricEmitter contentSizeMetricEmitterMock = Substitute.For<IContentSizeMetricEmitter>();
+    private readonly IOrderMetrics metricsMock = Substitute.For<IOrderMetrics>();
 
     public OrderEventManagerTests()
     {
-        orderEventManager = new OrderEventManager(featureToggleMock, cloudContentServiceMock, orderServiceMock, contentSizeMetricEmitterMock);
+        orderEventManager = new OrderEventManager(featureToggleMock, cloudContentServiceMock, orderServiceMock, contentSizeMetricEmitterMock, metricsMock);
     }
 
     // helpers removed; each test will configure and assert directly

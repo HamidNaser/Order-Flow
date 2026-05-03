@@ -17,10 +17,11 @@ public class OrderEventManager(
     IFeatureToggle featureToggle,
     ICloudContentService cloudContentService,
     IOrderService orderService,
-    IContentSizeMetricEmitter contentSizeMetricEmitter
+    IContentSizeMetricEmitter contentSizeMetricEmitter,
+    IOrderMetrics metrics
 ) : IOrderEventManager
 {
-    public async Task<ProcessingResult> ProcessEvent(OrderEvent orderEvent)
+    public async Task<ProcessingResult> ProcessEvent(OrderEvent orderEvent, CancellationToken cancellationToken = default)
     {
         Log
             .ForContext<OrderEventManager>()
@@ -30,10 +31,10 @@ public class OrderEventManager(
 
         var steps = new List<IProcessingStep<OrderEvent>>
         {
-            new ValidateStep<OrderEvent>(),
+            new ValidateStep<OrderEvent>(metrics),
             new ActionStep<OrderEvent>(async (evt, _, _) =>
             {
-                NewRelic.Api.Agent.NewRelic.IncrementCounter(
+                metrics.IncrementCounter(
                     evt.IsStandardPriority
                         ? "Custom/Order/Priority/Standard"
                         : "Custom/Order/Priority/Express"
@@ -41,15 +42,15 @@ public class OrderEventManager(
 
                 await Task.CompletedTask;
             }),
-            new StoreEnabledStep<OrderEvent>(featureToggle),
-            new RetrieveOrderContentStep(cloudContentService, contentSizeMetricEmitter),
+            new StoreEnabledStep<OrderEvent>(featureToggle, metrics),
+            new RetrieveOrderContentStep(cloudContentService, contentSizeMetricEmitter, metrics),
             new ActionStep<OrderEvent>((evt, ctx, _) =>
             {
                 var title = evt.GetMetadataValue("OrderTitle");
                 var hasTitle = !string.IsNullOrWhiteSpace(title);
                 if (string.IsNullOrWhiteSpace(ctx.MessageContent))
                 {
-                    NewRelic.Api.Agent.NewRelic.IncrementCounter(
+                    metrics.IncrementCounter(
                         hasTitle
                             ? "Custom/Order/Processing/Info/NoBody"
                             : "Custom/Order/Processing/Info/NoTitleAndNoBody");
@@ -57,11 +58,11 @@ public class OrderEventManager(
 
                 return Task.FromResult(StepResult.Continue());
             }),
-            new SendOrderStep<OrderEvent>(orderService)
+            new SendOrderStep<OrderEvent>(orderService, metrics)
         };
 
         var pipeline = new ProcessingPipeline<OrderEvent>(steps);
-        (StepResult stepResult, StepContext context) = await pipeline.RunAsync(orderEvent);
+        (StepResult stepResult, StepContext context) = await pipeline.RunAsync(orderEvent, cancellationToken);
 
         return ProcessingResult.From(stepResult, context);
     }
@@ -92,7 +93,7 @@ public class OrderEventManager(
         EmitSetOrNotSet("Classification", !string.IsNullOrWhiteSpace(classification));
         if (!string.IsNullOrWhiteSpace(classification))
         {
-            NewRelic.Api.Agent.NewRelic.IncrementCounter($"Custom/Order/Classification/{classification}");
+            metrics.IncrementCounter($"Custom/Order/Classification/{classification}");
         }
 
         // OriginalMessage: Set/NotSet + content-size bucketing
@@ -108,10 +109,10 @@ public class OrderEventManager(
         EmitSetOrNotSet("HasAttachments", !string.IsNullOrWhiteSpace(hasAttachmentsValue));
         if (!string.IsNullOrWhiteSpace(hasAttachmentsValue) && hasAttachmentsValue.Equals("true", StringComparison.OrdinalIgnoreCase))
         {
-            NewRelic.Api.Agent.NewRelic.IncrementCounter("Custom/Order/HasAttachments");
+            metrics.IncrementCounter("Custom/Order/HasAttachments");
             if (orderEvent.IsStandardPriority)
             {
-                NewRelic.Api.Agent.NewRelic.IncrementCounter("Custom/Order/HasAttachmentsAndIsAutomated");
+                metrics.IncrementCounter("Custom/Order/HasAttachmentsAndIsAutomated");
             }
         }
 
@@ -119,20 +120,20 @@ public class OrderEventManager(
         var orderFlowType = orderEvent.GetMetadataValue("OrderFlowType");
         if (!string.IsNullOrWhiteSpace(orderFlowType))
         {
-            NewRelic.Api.Agent.NewRelic.IncrementCounter($"Custom/Order/Direction/{orderFlowType}");
+            metrics.IncrementCounter($"Custom/Order/Direction/{orderFlowType}");
         }
     }
 
-    private static void EmitSetOrNotSet(string fieldName, bool isSet)
+    private void EmitSetOrNotSet(string fieldName, bool isSet)
     {
-        NewRelic.Api.Agent.NewRelic.IncrementCounter(
+        metrics.IncrementCounter(
             isSet ? $"Custom/Order/Set/{fieldName}" : $"Custom/Order/NotSet/{fieldName}"
         );
     }
 
     private delegate bool TryParseDelegate<T>(string? s, out T result);
 
-    private static void EmitNumericPresence<T>(OrderEvent orderEvent, string fieldName, TryParseDelegate<T> tryParse, Func<T, bool> isValid)
+    private void EmitNumericPresence<T>(OrderEvent orderEvent, string fieldName, TryParseDelegate<T> tryParse, Func<T, bool> isValid)
     {
         var raw = orderEvent.GetMetadataValue(fieldName);
         var present = !string.IsNullOrWhiteSpace(raw) && tryParse(raw, out var parsed) && isValid(parsed);

@@ -1,7 +1,7 @@
 # AI Agent Implementation Plan — Order Processing Platform
 
-> **Last Updated**: April 22, 2026
-> **Status**: Planning Complete — Ready for Phase 0
+> **Last Updated**: May 2, 2026
+> **Status**: Phase 1 ✅ | Phase 2A/2C ✅ | Phase 3B ✅ | Phase 4A ✅ | Phase 4C ✅ — Core Agent Complete, 2B Dropped
 
 ---
 
@@ -16,6 +16,7 @@
 - [Phase 2: End-to-End Trace Infrastructure](#phase-2-end-to-end-trace-infrastructure)
 - [Phase 3: MCP Resources + Prompts](#phase-3-mcp-resources--prompts-the-agent-brain-layer)
 - [Phase 4: Test Data Generators + Polish](#phase-4-test-data-generators--polish)
+- [Phase 5: Log & Trace Access Tools](#phase-5-log--trace-access-tools-autonomous-debugging)
 - [Timeline Summary](#timeline-summary)
 - [Demo Scenarios](#demo-scenarios)
 - [Risks & Decisions](#risks--decisions)
@@ -393,8 +394,8 @@ Add client methods to `MessageOperationsClient`:
 
 ## Phase 2: End-to-End Trace Infrastructure
 
-**Estimate: 3–4 days**
-**Status**: Not Started
+**Estimate: 2 days** (2B dropped)
+**Status**: ✅ Complete (2A + 2C)
 
 ### 2A. Trace/Polling API Endpoints (2 days)
 
@@ -419,34 +420,11 @@ New `TraceService`:
 - [ ] `WaitForMongoDocumentAsync(storeId, filter, timeoutSeconds, pollIntervalMs)`
 - [ ] `GetAllQueueDepthsAsync()`
 
-### 2B. Worker Control (1 day)
+### ~~2B. Worker Control~~ — ❌ Dropped
 
-**Add to each worker host** (OrderGateway.OrderWorker, OrderHub.IngestStandard.Worker, OrderHub.IngestExpress.Worker):
+> **Decision (May 2, 2026):** Dropped. Pause/resume requires production code changes across 3 solutions (OrderGateway, OrderHub, OrderCommon) — specifically adding `IPauseService` + `PauseController` to each worker and modifying the base `QueueMessageWorker<T>.ExecuteAsync`. This is invasive, and the trace/polling tools (2A) already provide end-to-end visibility without pausing. For autonomous AI debugging, log/trace access (Phase 5) gives far better signal than stopping queue polling. See Phase 5 for the replacement.
 
-```csharp
-public interface IPauseService
-{
-    bool IsPaused { get; }
-    void Pause();
-    void Resume();
-}
-```
-
-- [ ] Create `PauseService` implementation (thread-safe, `ManualResetEventSlim`)
-- [ ] Add `PauseController` to each worker host (`POST /pause`, `POST /resume`, `GET /status`)
-- [ ] Modify `QueueMessageWorker<T>.ExecuteAsync` to check `_pauseService.IsPaused` before polling
-
-Add worker URL configuration to MessageOperations `appsettings.json`:
-
-```json
-"Workers": {
-  "GatewayWorker": { "BaseUrl": "http://localhost:5050", "DisplayName": "OrderGateway Worker" },
-  "HubStandardWorker": { "BaseUrl": "http://localhost:5060", "DisplayName": "Hub Standard Worker" },
-  "HubExpressWorker": { "BaseUrl": "http://localhost:5070", "DisplayName": "Hub Express Worker" }
-}
-```
-
-### 2C. New MCP Trace & Worker Tools (1 day)
+### 2C. New MCP Trace Tools (1 day)
 
 | New Tool | Maps To | Tool Class |
 |---|---|---|
@@ -454,20 +432,17 @@ Add worker URL configuration to MessageOperations `appsettings.json`:
 | `WaitForQueueMessage` | `POST /trace/wait-for-queue-message` | `TraceTools` |
 | `WaitForMongoDocument` | `POST /trace/wait-for-mongodb-document` | `TraceTools` |
 | `GetAllQueueDepths` | `GET /trace/queue-depth-snapshot` | `TraceTools` |
-| `PauseWorker` | `POST {workerUrl}/pause` | New `WorkerTools` |
-| `ResumeWorker` | `POST {workerUrl}/resume` | `WorkerTools` |
-| `GetWorkerStatus` | `GET {workerUrl}/status` (all workers) | `WorkerTools` |
 
 ### Phase 2 Deliverable
 
-> You can tell Copilot: *"Pause Hub workers, send a test order, and confirm it's sitting in the standard queue"* — and it works.
+> You can tell Copilot: *"Send a test order and trace it through every hop"* — and it works. The agent polls for the message at each stage (queue → S3 → queue → MongoDB) without needing to pause workers.
 
 ---
 
 ## Phase 3: MCP Resources + Prompts (The Agent Brain Layer)
 
 **Estimate: 2–3 days**
-**Status**: Not Started
+**Status**: 3A ⬜ Not Started | 3B ✅ Complete
 
 ### 3A. MCP Resources (1 day)
 
@@ -480,17 +455,22 @@ Add worker URL configuration to MessageOperations `appsettings.json`:
 
 Implementation: Create `Order.MessageOperations.Mcp/Resources/` folder, register with `.WithResources<T>()` in `Program.cs`.
 
-### 3B. MCP Prompts — Scenario Templates (1.5 days)
+### 3B. MCP Prompts — Scenario Templates (1.5 days) — ✅ Complete
 
-| Prompt Name | What It Encodes | Steps |
-|---|---|---|
-| `setup-localstack` | "Initialize LocalStack for testing" | CheckHealth → SetupLocalStack → verify queues → verify S3 → report |
-| `end-to-end-trace` | "Send an order through the full pipeline and narrate each hop" | PurgeAllQueues → SendTestMessage → WaitForS3Object → WaitForQueueMessage → WaitForMongoDocument → report trace |
-| `trace-with-pause` | "Trace with worker pauses at each hop to inspect intermediate state" | PauseAll → Send → ResumeGateway → WaitForS3 → PauseGateway → inspect queue → ResumeHub → WaitForMongo → report |
-| `dlq-investigate` | "Check all DLQs and investigate any found messages" | GetAllQueueDepths → for each DLQ > 0: PeekMessages → correlate with MongoDB → report |
-| `teardown` | "Clean up all test state" | PurgeAllQueues → delete test orders → report |
+Implemented with externalized `.md` template files in `Prompts/Templates/` using `{{placeholder}}` replacement at runtime.
 
-Implementation: Create `Order.MessageOperations.Mcp/Prompts/` folder, register with `.WithPrompts<T>()` in `Program.cs`.
+| Prompt Name | Template File | What It Does | Status |
+|---|---|---|---|
+| `setup-localstack` | `setup-localstack.md` | Full 7-step infra setup: stop/clean/start OrderHub & OrderGateway, verify health | ✅ Done |
+| `build-and-run` | `build-and-run.md` | Build both solutions, start both AppHosts in background terminals, verify end-to-end | ✅ Done |
+| `run-standard-orders` | `run-standard-orders.md` | Generate N standard orders, send to gateway, trace through pipeline, summary table | ✅ Done |
+| `run-express-orders` | `run-express-orders.md` | Generate N express orders, send to gateway, trace through pipeline, summary table | ✅ Done |
+| `end-to-end-trace` | `end-to-end-trace.md` | Single order full pipeline trace with timing at each of 4 hops | ✅ Done |
+| `tear-down` | `tear-down.md` | Kill app processes, stop/clean OrderGateway & OrderHub infra, verify shutdown | ✅ Done |
+
+**Total: 7 prompts** (6 template files — `run-standard-orders` and `run-express-orders` share similar structure but use different `{{placeholder}}` values)
+
+Implementation: `Order.MessageOperations.Mcp/Prompts/OrderPrompts.cs` with `LoadTemplate()` method, registered with `.WithPrompts<OrderPrompts>()` in `Program.cs`. Template `.md` files copied to output via `.csproj` Content items.
 
 ### Phase 3 Deliverable
 
@@ -537,23 +517,122 @@ New MCP Tool:
 |---|---|
 | `RunScenarioBatch(scenarios[])` | Run multiple trace scenarios in sequence, report results as a table |
 
-### 4C. Documentation + Demo Script (0.5 day)
+### 4C. Documentation + Demo Script (0.5 day) — ✅ Complete
 
-- [ ] Update `README.md` with full tool catalog
-- [ ] Add demo conversation scripts
-- [ ] Add architecture diagram showing agent coverage
+- [x] Update `README.md` with full tool catalog
+- [x] Updated prompt documentation (7 prompts, template file docs, how-to-add-a-new-prompt)
+- [x] Updated architecture diagram showing agent coverage
+- [x] Reorganized "Other Things You Can Ask" into categories
+- [x] Port alignment (API on 5100, mcp.json, READMEs all consistent)
+
+---
+
+## Phase 5: Log & Trace Access Tools (Autonomous Debugging)
+
+**Estimate: 2–4 days (Tier 1: 1–2 days, Tier 2: 2–3 days)**
+**Status**: ⬜ Not Started
+
+### Goal
+
+Give the AI agent visibility into **what happened inside worker code** — logs, exceptions, stack traces, distributed traces. This is the missing piece for autonomous debugging: the agent can already observe inputs (queue messages) and outputs (S3 objects, MongoDB documents), but cannot see *why* something failed.
+
+### Why This Replaces Phase 2B (Worker Control)
+
+Pause/resume only controls queue polling — it can't show the AI what happened inside the code. Log access gives the AI the actual error messages, stack traces, and distributed traces it needs to reason about failures and fix code autonomously.
+
+### Architecture
+
+```
+┌──────────────────────────────────────────────────────────┐
+│                    ILogQueryService                       │
+│                                                          │
+│  GetServiceLogs(serviceName, last, filter)                │
+│  GetDistributedTrace(correlationId)                      │
+│  GetErrorSummary(serviceName, since)                     │
+│  SearchLogs(query, services[], timeRange)                │
+├──────────────────────────────────────────────────────────┤
+│  AspireLogQueryService    │  CloudWatchLogQueryService   │
+│  (Tier 1 — local)         │  (Tier 2 — production)       │
+│  OpenTelemetry + Docker   │  CloudWatch / AppInsights    │
+│  container logs           │  / Splunk adapters           │
+└──────────────────────────────────────────────────────────┘
+```
+
+Configuration-driven — swapped by `appsettings.{environment}.json`:
+
+```json
+// appsettings.localstack.json
+"LogSources": {
+  "Provider": "Aspire",
+  "AspireEndpoint": "http://localhost:18889"
+}
+
+// appsettings.aws.json
+"LogSources": {
+  "Provider": "CloudWatch",
+  "LogGroup": "/ecs/order-gateway",
+  "Region": "us-east-1"
+}
+```
+
+### Tier 1 — Local (Aspire / OpenTelemetry / Docker) — ~1–2 days
+
+New `LogController` + `ILogQueryService`:
+
+| Endpoint | Method | What It Does |
+|---|---|---|
+| `GET /api/v1/logs/{serviceName}` | `GetServiceLogs` | Get recent structured logs from a specific service |
+| `GET /api/v1/logs/trace/{correlationId}` | `GetDistributedTrace` | Get the full distributed trace for a correlation ID |
+| `GET /api/v1/logs/{serviceName}/errors` | `GetErrorSummary` | Get recent errors/exceptions with stack traces |
+| `POST /api/v1/logs/search` | `SearchLogs` | Search logs across services by text, level, time range |
+
+New MCP Tools:
+
+| Tool | What It Does |
+|---|---|
+| `GetServiceLogs` | Read recent logs from a worker — AI sees exceptions, warnings, processing details |
+| `GetDistributedTrace` | Follow a single order's trace across all services — AI sees where it broke |
+| `GetErrorSummary` | Quick check: "any errors in the last 5 minutes?" |
+| `SearchLogs` | Full-text search across all service logs |
+
+Data source: Aspire's OpenTelemetry collector (OTLP endpoint) and/or Docker container logs via Docker API.
+
+### Tier 2 — Production (CloudWatch / Splunk / AppInsights) — ~2–3 days
+
+Same `ILogQueryService` interface, different implementations:
+- `CloudWatchLogQueryService` — queries AWS CloudWatch Logs
+- `SplunkLogQueryService` — queries Splunk (note: generic Splunk MCP tools exist but lack order-pipeline awareness)
+- `AppInsightsLogQueryService` — queries Azure Application Insights (if applicable)
+
+The value over existing enterprise MCP tools (e.g., `mcp_cai-mcp_searchSplunkLogs`): these are **order-aware** — they know the service names, correlation ID fields, and log structure. One call like `GetDistributedTrace(orderId)` vs. manually constructing Splunk queries.
+
+### Autonomous Debugging Flow (enabled by this phase)
+
+```
+AI writes new feature → builds → sends test order via SendTestMessage
+    → WaitForMongoDocument times out (order never arrived)
+    → PeekQueueMessages on DLQ: message IS there (worker rejected it)
+    → GetServiceLogs("OrderGateway.OrderWorker", last: 20)
+      → sees: "FormatException: Invalid date format in field 'orderDate' at OrderProcessor.cs:45"
+    → AI fixes the date parsing code → rebuilds → resends → success
+```
+
+### Phase 5 Deliverable
+
+> The AI agent can autonomously debug failures by reading application logs and distributed traces — no human needs to open the Aspire dashboard or set breakpoints.
 
 ---
 
 ## Timeline Summary
 
-| Phase | What | Days | Cumulative |
-|---|---|---|---|
-| **Phase 0** | Local environment setup & orchestration (stop/clean/start/AppHosts) | 1–2 | 1–2 days |
-| **Phase 1** | Fix config + write tools (send, purge, S3 upload, LocalStack setup) | 3–4 | 4–6 days |
-| **Phase 2** | End-to-end trace (polling, worker control) | 3–4 | 7–10 days |
-| **Phase 3** | MCP Resources + Prompts (agent intelligence) | 2–3 | 9–13 days |
-| **Phase 4** | Test data generators + polish | 2 | **11–15 days total** |
+| Phase | What | Days | Cumulative | Status |
+|---|---|---|---|---|
+| **Phase 0** | Local environment setup & orchestration (stop/clean/start/AppHosts) | 1–2 | 1–2 days | ✅ Covered by prompts |
+| **Phase 1** | Fix config + write tools (send, purge, S3 upload, LocalStack setup) | 3–4 | 4–6 days | ✅ Complete |
+| **Phase 2** | End-to-end trace (polling) — ~~worker control dropped~~ | 2 | 6–8 days | ✅ Complete (2A+2C) |
+| **Phase 3** | MCP Resources + Prompts (agent intelligence) | 2–3 | 8–11 days | 3A ⬜ / 3B ✅ |
+| **Phase 4** | Test data generators + polish | 2 | 10–13 days | ✅ Complete |
+| **Phase 5** | Log & Trace Access (autonomous debugging) | 2–4 | 12–17 days | ⬜ Not started |
 
 Each phase is independently demoable and valuable.
 
@@ -569,9 +648,9 @@ Each phase is independently demoable and valuable.
 
 ### After Phase 2
 
-> **"Pause Hub workers, send a test express order, and confirm it's sitting in the express queue."**
+> **"Send a test express order and trace it through the full pipeline."**
 >
-> Agent: Pauses express worker → enqueues message → confirms S3 + queue state → reports: "Message X is in `order-hub-express-order` and not yet processed."
+> Agent: Sends test message → polls S3 for object → polls Hub queue for downstream message → polls MongoDB for final document → reports step-by-step trace with timings.
 
 ### After Phase 3
 
@@ -583,15 +662,9 @@ Each phase is independently demoable and valuable.
 
 ## Risks & Decisions
 
-### Key Risk: Worker Control (Phase 2B)
+### ~~Key Risk: Worker Control (Phase 2B)~~ — Resolved (Dropped)
 
-Worker pause/unpause requires changes **outside** `Order.MessageOperations` — specifically adding a `PauseController` + `IPauseService` to OrderGateway.OrderWorker and both Hub workers.
-
-**Mitigation**: If blocked, skip pause/unpause. The trace tools simply poll "did the next hop happen yet?" without stopping workers. The agent still works — you just can't inspect intermediate state as cleanly.
-
-### Decision: Worker URLs
-
-Each worker runs in its own process. The MessageOperations API needs to know each worker's URL for pause/resume calls. This is configuration — add a `Workers` section to `appsettings.json`.
+> **Decision (May 2, 2026):** Dropped entirely. Worker pause/resume required production code changes across 3 solutions (adding `IPauseService` + `PauseController` to each worker + modifying base `QueueMessageWorker<T>`). Trace/polling tools (Phase 2A) already provide full end-to-end visibility. For autonomous AI debugging, log/trace access (Phase 5) is the right tool — it shows *what happened inside the code*, not just *whether queue polling stopped*.
 
 ### Decision: LocalStack-Only Scope
 
@@ -629,28 +702,46 @@ All write tools (send, purge, create, upload) are **LocalStack-only** by design.
 
 ### New Tools (Phase 1–4) — To Build
 
-| # | Tool | Phase | Type |
-|---|---|---|---|
-| 22 | `SendTestMessage` | 1 | Write |
-| 23 | `PurgeQueue` | 1 | Write |
-| 24 | `PurgeAllQueues` | 1 | Write |
-| 25 | `CreateQueue` | 1 | Write |
-| 26 | `UploadS3Object` | 1 | Write |
-| 27 | `CreateS3Bucket` | 1 | Write |
-| 28 | `CheckLocalStackHealth` | 1 | Read |
-| 29 | `SetupLocalStackEnvironment` | 1 | Write |
-| 30 | `TeardownLocalStackEnvironment` | 1 | Write |
-| 31 | `WaitForS3Object` | 2 | Read (poll) |
-| 32 | `WaitForQueueMessage` | 2 | Read (poll) |
-| 33 | `WaitForMongoDocument` | 2 | Read (poll) |
-| 34 | `GetAllQueueDepths` | 2 | Read |
-| 35 | `PauseWorker` | 2 | Write |
-| 36 | `ResumeWorker` | 2 | Write |
-| 37 | `GetWorkerStatus` | 2 | Read |
-| 38 | `GenerateTestOrder` | 4 | Write |
-| 39 | `RunScenarioBatch` | 4 | Write |
+| # | Tool | Phase | Type | Status |
+|---|---|---|---|---|
+| 22 | `SendTestMessage` | 1 | Write | ✅ Done |
+| 23 | `PurgeQueue` | 1 | Write | ✅ Done |
+| 24 | `PurgeAllQueues` | 1 | Write | ✅ Done |
+| 25 | ~~`CreateQueue`~~ | 1 | Write | ❌ Dropped (infra handles) |
+| 26 | `UploadS3Object` | 1 | Write | ✅ Done |
+| 27 | ~~`CreateS3Bucket`~~ | 1 | Write | ❌ Dropped (infra handles) |
+| 28 | `CheckLocalStackHealth` | 1 | Read | ✅ Done |
+| 29 | ~~`SetupLocalStackEnvironment`~~ | 1 | Write | ❌ Dropped (docker-compose) |
+| 30 | ~~`TeardownLocalStackEnvironment`~~ | 1 | Write | ❌ Dropped (docker-compose) |
+| 31 | `WaitForS3Object` | 2 | Read (poll) | ✅ Done |
+| 32 | `WaitForQueueMessage` | 2 | Read (poll) | ✅ Done |
+| 33 | `WaitForMongoDocument` | 2 | Read (poll) | ✅ Done |
+| 34 | `GetAllQueueDepths` | 2 | Read | ✅ Done |
+| 35 | ~~`PauseWorker`~~ | ~~2~~ | ~~Write~~ | ❌ Dropped (2B removed) |
+| 36 | ~~`ResumeWorker`~~ | ~~2~~ | ~~Write~~ | ❌ Dropped (2B removed) |
+| 37 | ~~`GetWorkerStatus`~~ | ~~2~~ | ~~Read~~ | ❌ Dropped (2B removed) |
+| 38 | `GenerateTestOrders` | 4 | Read | ✅ Done |
+| 39 | `GenerateAndSendOrders` | 4 | Write | ✅ Done |
+| 40 | `RunScenarioBatch` | 4 | Write | ⬜ Nice-to-have |
+| 41 | `GetServiceLogs` | 5 | Read | ⬜ Planned |
+| 42 | `GetDistributedTrace` | 5 | Read | ⬜ Planned |
+| 43 | `GetErrorSummary` | 5 | Read | ⬜ Planned |
+| 44 | `SearchLogs` | 5 | Read | ⬜ Planned |
 
-**Total: 39 tools (21 existing + 18 new)**
+**Total: 33 tools built (21 existing + 12 new), 7 dropped, 5 planned**
+
+### MCP Prompts (Phase 3B)
+
+| # | Prompt | Template File | What It Does | Status |
+|---|---|---|---|---|
+| 1 | `setup-localstack` | `setup-localstack.md` | Full 7-step infra setup (stop/clean/start OrderHub & OrderGateway, verify) | ✅ Done |
+| 2 | `build-and-run` | `build-and-run.md` | Build both solutions, start AppHosts, verify end-to-end | ✅ Done |
+| 3 | `run-standard-orders` | `run-standard-orders.md` | Generate N standard orders, send, trace, summarize | ✅ Done |
+| 4 | `run-express-orders` | `run-express-orders.md` | Generate N express orders, send, trace, summarize | ✅ Done |
+| 5 | `end-to-end-trace` | `end-to-end-trace.md` | Single order full pipeline trace with 4-hop timing | ✅ Done |
+| 6 | `tear-down` | `tear-down.md` | Kill app processes, stop/clean infra, verify shutdown | ✅ Done |
+
+**Total: 7 prompts (6 template files, externalized to `Prompts/Templates/*.md`)**
 
 ---
 
@@ -659,5 +750,139 @@ All write tools (send, purge, create, upload) are **LocalStack-only** by design.
 | Date | Phase | What Was Done |
 |---|---|---|
 | 2026-04-21 | Planning | Created implementation plan |
-| 2026-04-22 | Planning | Added Phase 0 — Local Environment Setup & Orchestration (9-step setup sequence, MCP prompts for setup/teardown) |
-| | | |
+| 2026-04-22 | Planning | Added Phase 0 — Local Environment Setup & Orchestration |
+| 2026-04-23 | Planning | Dropped CreateQueue, CreateBucket, Setup/Teardown tools; removed 3 unused queue pairs from docker-compose |
+| 2026-04-23 | Phase 1A | Fixed IngestStandard queue name, added IngestExpress config entry |
+| 2026-04-23 | Phase 1B | Implemented 3 queue write endpoints (send, purge, purge-all) + service methods |
+| 2026-04-23 | Phase 1C | Implemented S3 upload endpoint + service method |
+| 2026-04-23 | Phase 1D | Implemented HealthController with LocalStack SQS+S3 connectivity check |
+| 2026-04-23 | Phase 1E | Built 5 MCP tools (SendTestMessage, PurgeQueue, PurgeAllQueues, UploadS3Object, CheckLocalStackHealth), client methods, DTOs |
+| 2026-04-23 | Phase 1  | Added 15 unit tests for new Phase 1 code (queues: 7, s3: 4, health: 4) |
+| 2026-04-23 | Phase 2A | Built ITraceService + TraceService with 4 polling methods (WaitForS3Object, WaitForQueueMessage, WaitForMongoDocument, GetAllQueueDepths) |
+| 2026-04-23 | Phase 2A | Built TraceController with 4 endpoints + request/response models |
+| 2026-04-23 | Phase 2C | Built 4 MCP TraceTools + client methods + DTOs; registered in MCP server |
+| 2026-04-23 | Phase 2  | Added 7 unit tests for TraceController |
+| 2026-04-23 | Testing  | All code compiles (0 errors, 0 warnings), 73 tests passing |
+| 2026-04-29 | Phase 4A | Built ITestDataService + TestDataService — realistic order generation in gateway (base64 OrderEvent) and ingest (Shipment/Digital JSON) formats |
+| 2026-04-29 | Phase 4A | Built TestDataController — POST /api/v1/test-data/generate-orders with priority, channelType, count, storeId, format params |
+| 2026-04-29 | Phase 4A | Built 2 MCP tools: GenerateTestOrders (generate only) + GenerateAndSendOrders (generate + send to queue) |
+| 2026-04-29 | Phase 3B | Built OrderPrompts class with 4 MCP prompts: setup-localstack, run-standard-orders, run-express-orders, end-to-end-trace |
+| 2026-04-29 | Phase 3B | Registered TestDataTools + OrderPrompts in MCP Program.cs |
+| 2026-04-29 | Testing  | Added 34 unit tests (9 TestDataController + 17 TestDataService + 8 theory variations). Total: 107 tests passing |
+| 2026-05-02 | Phase 3B | Externalized all prompts from C# inline strings to `.md` template files with `{{placeholder}}` replacement |
+| 2026-05-02 | Phase 3B | Created 3 new prompts: `build-and-run`, `tear-down`, expanded `setup-localstack` to full 7-step process |
+| 2026-05-02 | Phase 4C | Updated both READMEs: prompt counts, template docs, architecture, "Other Things You Can Ask" categories |
+| 2026-05-02 | Phase 4C | Fixed port alignment: launchSettings.json → 5100, mcp.json → 5100, README → 5100 (was 55701) |
+| 2026-05-02 | Planning | Created `autonomous-ai-agent-todo.md` documenting 8 constraints + 7 priorities for future autonomous use |
+| 2026-05-02 | Planning | Dropped Phase 2B (Worker Control) — trace/polling tools sufficient, avoids production code changes |
+| 2026-05-02 | Planning | Added Phase 5: Log & Trace Access Tools for autonomous debugging (config-driven: Aspire local, CloudWatch/Splunk production) |
+
+## What's Done vs. What's Left
+
+### ✅ Complete (Demoable Agent)
+
+- **Phase 1 (full)**: Config fix, queue write endpoints, S3 upload, health check, 5 MCP tools, 15 unit tests
+- **Phase 2A+2C**: Trace/polling service with 4 methods, controller with 4 endpoints, 4 MCP trace tools, 7 unit tests
+- **Phase 3B**: 7 MCP prompts (setup-localstack, build-and-run, run-standard-orders, run-express-orders, end-to-end-trace, tear-down) — externalized to `.md` template files
+- **Phase 4A**: TestDataService + TestDataController + 2 MCP tools (GenerateTestOrders, GenerateAndSendOrders) + 34 unit tests
+- **Phase 4C**: Both READMEs fully updated, port alignment, template documentation
+- **Docker cleanup**: Removed 3 unused queue pairs from docker-compose.yml
+- **Total MCP tools**: 33 (21 pre-existing + 12 new)
+- **Total MCP prompts**: 7 (6 template files in `Prompts/Templates/`)
+- **Total tests**: 107 (51 pre-existing + 56 new)
+
+### ⬜ Next Up
+
+| Item | Phase | Effort | Value |
+|---|---|---|---|
+| **Phase 3A: MCP Resources** (system topology, queue health, recent orders) | 3 | ~1 day | Auto-loaded context for AI — every conversation starts informed |
+| **Phase 5 Tier 1: Local Log Access** (Aspire/OpenTelemetry/Docker logs) | 5 | ~1-2 days | AI can read worker logs and stack traces for autonomous debugging |
+
+### ⬜ Future / Nice-to-Have
+
+| Item | Phase | Effort | Value |
+|---|---|---|---|
+| Phase 4B: Batch test scenarios (RunScenarioBatch) | 4 | ~0.5 day | Run multiple scenarios in sequence, report as table |
+| Phase 5 Tier 2: Production log access (CloudWatch/Splunk/AppInsights) | 5 | ~2-3 days | Order-aware log queries for production environments |
+| Phase 6: CI/CD integration | 6 | ~3 days | GitHub Actions hooks — separate concern |
+| TraceService unit tests | 2 | ~0.5 day | Tests for the polling logic itself (currently tested at controller level) |
+
+### ❌ Dropped
+
+| Item | Phase | Reason |
+|---|---|---|
+| ~~Phase 2B: Worker Control (Pause/Resume/Status)~~ | 2 | Requires production code changes across 3 solutions; trace/polling tools sufficient; replaced by Phase 5 log access |
+| ~~CreateQueue, CreateBucket, Setup/Teardown tools~~ | 1 | Infrastructure scripts (docker-compose) handle this |
+
+
+-----
+## Marketplace Comparison
+
+This section compares our MCP server to Cindy's Plugin Marketplaces (`C:\Work\Copilot-Marketplace` and `C:\Work\Claude-Marketplace`) for future reference.
+
+### What the Marketplaces Provide
+
+Both marketplaces are **prompt engineering frameworks** — collections of markdown-based skills and agent personas.
+
+| | Copilot-Marketplace | Claude-Marketplace |
+|---|---|---|
+| **Plugins** | 3 (spec-driven-skills, delivery-team, rims-dev-tools) | 5 (workflow-automation, dealer-persona, delivery-team, support-engineering, rims-dev-tools) |
+| **Skills** | 20 | ~67 |
+| **Agents** | Sub-agents within skills | 62 standalone agent personas |
+| **How they work** | AI reads `SKILL.md` → follows structured instructions | Same |
+| **What they produce** | PRDs, architecture docs, code, test strategies, reviews | Same, plus persona-driven reviews, support triage, capacity tracking |
+
+### What Ours Provides (Different Layer)
+
+| | Marketplace Skills | Our MCP Server |
+|---|---|---|
+| **Category** | Instructed Intelligence — teaches the AI what to think | Tooled Intelligence — gives the AI the ability to act |
+| **Artifact** | Markdown files (`SKILL.md`) | .NET 8 REST API + MCP tool server |
+| **Runs as** | Text read by AI at conversation start | Two processes: API on port 5100, MCP server over stdio |
+| **Mechanism** | AI reads instructions, follows them | AI discovers tools, calls them via MCP protocol |
+| **Domain** | Generic software development process | Order processing pipeline (SQS, S3, MongoDB, LocalStack) |
+| **Without the AI** | Useless — just text files | Still works — callable REST API |
+| **With the AI** | Makes AI behave like a specialist (architect, security auditor, etc.) | Gives AI ability to send messages, poll queues, query databases |
+
+### How They're Complementary
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Marketplace Skills (Claude/Copilot)                        │
+│  "Create a PRD for adding order validation"                 │
+│  "Architect the new retry handler"                          │
+│  "Generate tests for the validation rule"                   │
+│                                                             │
+│  → Teaches AI HOW to develop software                       │
+├─────────────────────────────────────────────────────────────┤
+│  Our MCP Agent (Order.MessageOperations)                    │
+│  "Send test order to IncomingOrders queue"                  │
+│  "Wait for it in MongoDB"                                   │
+│  "Check all queue depths"                                   │
+│                                                             │
+│  → Gives AI HANDS to operate the system                     │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### The Combined Vision
+
+With both layers active, you could say:
+
+> *"Add a new order validation rule that rejects orders with missing customer IDs, implement it, and verify it works end-to-end"*
+
+- **Marketplace skills** handle: requirements → architecture → code generation → test writing → PR creation
+- **Our MCP tools** handle: send a test order with missing customer ID → trace it → confirm rejection → send a valid order → confirm it succeeded
+
+### Key Terminology
+
+| Term | What It Means |
+|---|---|
+| **MCP Server** | Our project — a .NET application exposing tools over the Model Context Protocol |
+| **MCP Tool** | A function the AI can call (e.g., `SendTestMessage`, `WaitForS3Object`) |
+| **MCP Resource** | Auto-loaded context the AI reads (planned Phase 3A — e.g., system topology) |
+| **MCP Prompt** | A scenario template the AI follows (planned Phase 3B — e.g., "end-to-end-trace") |
+| **Skill** | A markdown instruction set (what the marketplaces provide) |
+| **Agent (marketplace)** | A markdown persona definition — not a running process |
+| **Agent (ours)** | The AI + our MCP tools combined — a system that can reason AND act |
+
+Neither marketplace has anything for order processing, SQS, S3, or LocalStack. They don't overlap with what we're building — they sit above it as a complementary layer.

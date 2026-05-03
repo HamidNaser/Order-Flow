@@ -1,3 +1,4 @@
+using Order.MessageOperations.Api.Models.Responses;
 using Order.MessageOperations.Api.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -7,9 +8,9 @@ namespace Order.MessageOperations.Api.Controllers.V1;
 [Route("api/v1/batches")]
 public class BatchesController : ControllerBase
 {
-    private readonly MessageStorageService _messageStorageService;
+    private readonly IMessageStorageService _messageStorageService;
 
-    public BatchesController(MessageStorageService messageStorageService)
+    public BatchesController(IMessageStorageService messageStorageService)
     {
         _messageStorageService = messageStorageService;
     }
@@ -18,11 +19,7 @@ public class BatchesController : ControllerBase
     public IActionResult ListBatches()
     {
         var batches = _messageStorageService.ListAvailableBatches()
-            .Select(item => new
-            {
-                QueueType = item.QueueType,
-                BatchIds = item.Batches
-            })
+            .Select(item => new BatchGroupDto(item.QueueType, item.Batches))
             .OrderBy(item => item.QueueType)
             .ToList();
 
@@ -36,7 +33,7 @@ public class BatchesController : ControllerBase
         var manifest = await _messageStorageService.LoadManifestAsync(batchPath);
         if (manifest is null)
         {
-            return NotFound(new { Message = "Batch manifest not found" });
+            return NotFound(new ErrorResponse("Batch manifest not found"));
         }
 
         return Ok(manifest);
@@ -48,7 +45,7 @@ public class BatchesController : ControllerBase
         var batchPath = _messageStorageService.BuildBatchPath(queueType, batchId);
         if (!Directory.Exists(batchPath))
         {
-            return NotFound(new { Message = "Batch not found" });
+            return NotFound(new ErrorResponse("Batch not found"));
         }
 
         var messages = await _messageStorageService.LoadBatchAsync(batchPath);

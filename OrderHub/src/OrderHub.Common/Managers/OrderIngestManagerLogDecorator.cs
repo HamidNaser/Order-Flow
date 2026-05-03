@@ -1,15 +1,15 @@
 using System.Diagnostics;
 using OrderHub.Common.Exceptions;
+using OrderHub.Common.Telemetry;
 using OrderHub.Contracts.Common.Enums;
 using OrderHub.Contracts.Ingest;
-using NewRelic.Api.Agent;
 using Serilog;
 using Serilog.Context;
 using Priority = OrderHub.Common.Models.Components.Priority;
 
 namespace OrderHub.Common.Managers
 {
-    public class OrderIngestManagerLogDecorator(IOrderIngestManager inner) : IOrderIngestManager
+    public class OrderIngestManagerLogDecorator(IOrderIngestManager inner, IOrderMetrics metrics) : IOrderIngestManager
     {
         public async Task<AddOrderResult> AddOrderAsync(OrderRequest request, Priority priority)
         {
@@ -76,27 +76,26 @@ namespace OrderHub.Common.Managers
 
         private void ReportMetrics(OrderRequest request)
         {
-            var agent = NewRelic.Api.Agent.NewRelic.GetAgent();
             var contentLength = request.Content?.Length ?? 0;
 
-            agent.CurrentTransaction.AddCustomAttribute("Custom/ContentSize", contentLength);
-            agent.CurrentTransaction.AddCustomAttribute("Custom/StoreId", request.StoreId);
-            agent.CurrentTransaction.AddCustomAttribute("Custom/AgentId", request.AgentId ?? string.Empty);
-            agent.CurrentTransaction.AddCustomAttribute("Custom/Merchant", request.Merchant);
+            metrics.AddCustomAttribute("Custom/ContentSize", contentLength);
+            metrics.AddCustomAttribute("Custom/StoreId", request.StoreId);
+            metrics.AddCustomAttribute("Custom/AgentId", request.AgentId ?? string.Empty);
+            metrics.AddCustomAttribute("Custom/Merchant", request.Merchant);
 
             switch (request)
             {
                 case AddDigitalOrderRequest addTextRequest:
-                    ReportTextMetrics(agent, addTextRequest, contentLength);
+                    ReportTextMetrics(addTextRequest, contentLength);
                     break;
 
                 case AddShipmentOrderRequest addOrderRequest:
-                    ReportOrderMetrics(agent, addOrderRequest, contentLength);
+                    ReportOrderMetrics(addOrderRequest, contentLength);
                     break;
             }
         }
 
-        private void ReportTextMetrics(IAgent agent, AddDigitalOrderRequest request, int contentLength)
+        private void ReportTextMetrics(AddDigitalOrderRequest request, int contentLength)
         {
 
             var sizeBucket = contentLength switch
@@ -108,11 +107,11 @@ namespace OrderHub.Common.Managers
                 _ => "2000+"
             };
 
-            NewRelic.Api.Agent.NewRelic.IncrementCounter($"Custom/Type/text");
-            NewRelic.Api.Agent.NewRelic.IncrementCounter($"Custom/ContentSize/{sizeBucket}");
+            metrics.IncrementCounter($"Custom/Type/text");
+            metrics.IncrementCounter($"Custom/ContentSize/{sizeBucket}");
         }
 
-        private void ReportOrderMetrics(IAgent agent, AddShipmentOrderRequest request, int contentLength)
+        private void ReportOrderMetrics(AddShipmentOrderRequest request, int contentLength)
         {
 
             var sizeBucket = contentLength switch
@@ -129,8 +128,8 @@ namespace OrderHub.Common.Managers
                 _ => "500001+"
             };
 
-            NewRelic.Api.Agent.NewRelic.IncrementCounter($"Custom/Type/shipment");
-            NewRelic.Api.Agent.NewRelic.IncrementCounter($"Custom/ContentSize/{sizeBucket}");
+            metrics.IncrementCounter($"Custom/Type/shipment");
+            metrics.IncrementCounter($"Custom/ContentSize/{sizeBucket}");
         }
 
     }

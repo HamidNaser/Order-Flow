@@ -39,7 +39,10 @@ namespace Order.MessagePump.Pipelines
 
             if (disposing)
             {
-                FlushAsync().ConfigureAwait(false).GetAwaiter().GetResult();
+                // Signal completion without blocking. Prefer 'await using' with DisposeAsync
+                // for safe flushing — sync Dispose cannot safely wait for async completion
+                // without risking deadlocks (sync-over-async).
+                startBlock.Complete();
             }
 
             disposed = true;

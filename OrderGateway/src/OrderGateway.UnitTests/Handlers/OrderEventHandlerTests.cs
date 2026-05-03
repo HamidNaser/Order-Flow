@@ -8,6 +8,7 @@ using OrderGateway.Common.Handlers;
 using OrderGateway.Common.Managers;
 using OrderGateway.Common.Models;
 using OrderGateway.Common.Models.Events;
+using OrderGateway.Common.Telemetry;
 using Microsoft.Extensions.Options;
 using NSubstitute;
 using Xunit;
@@ -17,12 +18,13 @@ namespace OrderGateway.UnitTests.Handlers;
 public class OrderEventHandlerTests
 {
     private readonly IOrderEventManager manager = Substitute.For<IOrderEventManager>();
+    private readonly IOrderMetrics metrics = Substitute.For<IOrderMetrics>();
     private readonly OrderEventHandler handler;
 
     public OrderEventHandlerTests()
     {
         var opts = Options.Create(new MessageHandlerOptions { MaxMessageRetries = 3 });
-        handler = new OrderEventHandler(manager, opts);
+        handler = new OrderEventHandler(manager, metrics, opts);
     }
 
     [Fact]

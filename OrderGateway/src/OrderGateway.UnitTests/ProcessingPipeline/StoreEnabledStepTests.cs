@@ -2,6 +2,7 @@ using OrderGateway.Common.FeatureToggle;
 using OrderGateway.Common.Models.Events;
 using OrderGateway.Common.Processing.Abstractions;
 using OrderGateway.Common.Processing.Steps;
+using OrderGateway.Common.Telemetry;
 using NSubstitute;
 using Xunit;
 
@@ -9,6 +10,7 @@ namespace OrderGateway.UnitTests.ProcessingPipeline;
 
 public class StoreEnabledStepTests
 {
+    private readonly IOrderMetrics _metrics = Substitute.For<IOrderMetrics>();
     private static OrderEvent CreateEvent(string storeId) => new()
     {
         Type = "order-outbound",
@@ -29,7 +31,7 @@ public class StoreEnabledStepTests
     {
         var featureToggle = Substitute.For<IFeatureToggle>();
         featureToggle.IsFeatureEnabled(Arg.Any<FeatureFlag>(), Arg.Any<FeatureUser?>()).Returns(true);
-        var step = new StoreEnabledStep<OrderEvent>(featureToggle);
+        var step = new StoreEnabledStep<OrderEvent>(featureToggle, _metrics);
         var evt = CreateEvent("123");
         var result = await step.ExecuteAsync(evt, new StepContext());
         Assert.True(result.ShouldContinue);
@@ -41,7 +43,7 @@ public class StoreEnabledStepTests
     {
         var featureToggle = Substitute.For<IFeatureToggle>();
         featureToggle.IsFeatureEnabled(Arg.Any<FeatureFlag>(), Arg.Any<FeatureUser?>()).Returns(false);
-        var step = new StoreEnabledStep<OrderEvent>(featureToggle);
+        var step = new StoreEnabledStep<OrderEvent>(featureToggle, _metrics);
         var evt = CreateEvent("123");
         var result = await step.ExecuteAsync(evt, new StepContext());
         Assert.False(result.ShouldContinue);
@@ -54,7 +56,7 @@ public class StoreEnabledStepTests
     {
         var featureToggle = Substitute.For<IFeatureToggle>();
         featureToggle.IsFeatureEnabled(Arg.Any<FeatureFlag>(), Arg.Any<FeatureUser?>()).Returns(true);
-        var step = new StoreEnabledStep<OrderEvent>(featureToggle);
+        var step = new StoreEnabledStep<OrderEvent>(featureToggle, _metrics);
         var evt = CreateEvent("777");
         _ = await step.ExecuteAsync(evt, new StepContext());
         featureToggle.Received(1)

@@ -225,7 +225,7 @@ public class MessagePumpResiliencyTests(ApiTestsFixture fixture)
     {
         public int CallCount { get; private set; }
 
-        public Task<MessageResult> HandleMessageAsync(string message)
+        public Task<MessageResult> HandleMessageAsync(string message, CancellationToken cancellationToken = default)
         {
             CallCount++;
             throw new InvalidOperationException("forced failure");
@@ -234,15 +234,15 @@ public class MessagePumpResiliencyTests(ApiTestsFixture fixture)
 
     private sealed class NoOpQueueClient : IQueueClient<string>
     {
-        public Task CompleteMessageAsync(string message) => Task.CompletedTask;
+        public Task CompleteMessageAsync(string message, CancellationToken cancellationToken = default) => Task.CompletedTask;
 
-        public Task<List<string>> GetMessagesAsync(int maxNumberOfMessages) =>
+        public Task<List<string>> GetMessagesAsync(int maxNumberOfMessages, CancellationToken cancellationToken = default) =>
             Task.FromResult(new List<string>());
 
-        public Task PoisonMessageAsync(string message, Exception? ex = null, string? reason = null) =>
+        public Task PoisonMessageAsync(string message, Exception? ex = null, string? reason = null, CancellationToken cancellationToken = default) =>
             Task.CompletedTask;
 
-        public Task RetryMessageAsync(string message, TimeSpan? backoff = null) =>
+        public Task RetryMessageAsync(string message, TimeSpan? backoff = null, CancellationToken cancellationToken = default) =>
             Task.CompletedTask;
     }
 
@@ -250,7 +250,7 @@ public class MessagePumpResiliencyTests(ApiTestsFixture fixture)
     {
         public int CallCount { get; private set; }
 
-        public Task<MessageResult> HandleMessageAsync(string message)
+        public Task<MessageResult> HandleMessageAsync(string message, CancellationToken cancellationToken = default)
         {
             CallCount++;
             return Task.FromResult(MessageResult.Retry(details: "retry requested", backoff: backoff));
@@ -265,22 +265,22 @@ public class MessagePumpResiliencyTests(ApiTestsFixture fixture)
         public TimeSpan? LastBackoff { get; private set; }
         public string? LastRetriedMessage { get; private set; }
 
-        public Task CompleteMessageAsync(string message)
+        public Task CompleteMessageAsync(string message, CancellationToken cancellationToken = default)
         {
             CompleteCalls++;
             return Task.CompletedTask;
         }
 
-        public Task<List<string>> GetMessagesAsync(int maxNumberOfMessages) =>
+        public Task<List<string>> GetMessagesAsync(int maxNumberOfMessages, CancellationToken cancellationToken = default) =>
             Task.FromResult(new List<string>());
 
-        public Task PoisonMessageAsync(string message, Exception? ex = null, string? reason = null)
+        public Task PoisonMessageAsync(string message, Exception? ex = null, string? reason = null, CancellationToken cancellationToken = default)
         {
             PoisonCalls++;
             return Task.CompletedTask;
         }
 
-        public Task RetryMessageAsync(string message, TimeSpan? backoff = null)
+        public Task RetryMessageAsync(string message, TimeSpan? backoff = null, CancellationToken cancellationToken = default)
         {
             RetryCalls++;
             LastBackoff = backoff;

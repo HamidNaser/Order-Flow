@@ -1,6 +1,7 @@
 using Destructurama.Attributed;
 using System.Text.Json.Serialization;
 using OrderGateway.Common.Helpers;
+using OrderGateway.Common.Telemetry;
 
 namespace OrderGateway.Common.Models.Events;
 
@@ -122,14 +123,14 @@ public class OrderEvent : IOrderEvent
     /// Call this from the pipeline step — not from the model itself — to keep telemetry
     /// out of domain logic.
     /// </summary>
-    public void EmitValidationCounters()
+    public void EmitValidationCounters(IOrderMetrics metrics)
     {
         _validationFindings ??= ComputeValidationFindings();
         foreach (var finding in _validationFindings)
         {
             if (finding.CounterName != null)
             {
-                NewRelic.Api.Agent.NewRelic.IncrementCounter(finding.CounterName);
+                metrics.IncrementCounter(finding.CounterName);
             }
         }
     }

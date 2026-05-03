@@ -4,6 +4,7 @@ using OrderGateway.Common.Models;
 using OrderGateway.Common.Models.Events;
 using OrderGateway.Common.Processing.Abstractions;
 using OrderGateway.Common.Services.Mapping;
+using OrderGateway.Common.Telemetry;
 using Serilog;
 using StandardContracts = OrderGateway.Common.Clients.IngestStandardApi.V1;
 using ExpressContracts = OrderGateway.Common.Clients.IngestExpressApi.V1;
@@ -14,6 +15,7 @@ public class OrderService(
     IIngestStandardClient standardClient,
     IIngestExpressClient expressClient,
     IOrderRequestMapper orderMapper,
+    IOrderMetrics metrics,
     ILogger logger
 ) : IOrderService
 {
@@ -48,7 +50,7 @@ public class OrderService(
         catch (StandardContracts.OrderGatewayApiV1ClientException<StandardContracts.DuplicateOrderResponse> standardDuplicate) when (standardDuplicate.StatusCode == 409)
         {
             var eventNameWithoutEvent = evt.GetType().Name.Replace("Event", "");
-            NewRelic.Api.Agent.NewRelic.IncrementCounter($"Custom/{eventNameWithoutEvent}/Processing/Error/DuplicateOrder");
+            metrics.IncrementCounter($"Custom/{eventNameWithoutEvent}/Processing/Error/DuplicateOrder");
 
             logger
                 .ForContext("DuplicateOrderResponse", standardDuplicate.Result, destructureObjects: true)
@@ -59,7 +61,7 @@ public class OrderService(
         catch (ExpressContracts.OrderGatewayApiV1ClientException<ExpressContracts.DuplicateOrderResponse> expressDuplicate) when (expressDuplicate.StatusCode == 409)
         {
             var eventNameWithoutEvent = evt.GetType().Name.Replace("Event", "");
-            NewRelic.Api.Agent.NewRelic.IncrementCounter($"Custom/{eventNameWithoutEvent}/Processing/Error/DuplicateOrder");
+            metrics.IncrementCounter($"Custom/{eventNameWithoutEvent}/Processing/Error/DuplicateOrder");
 
             logger
                 .ForContext("DuplicateOrderResponse", expressDuplicate.Result, destructureObjects: true)

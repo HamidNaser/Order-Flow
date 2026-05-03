@@ -1,7 +1,7 @@
 # Order Platform — Improvement Plan
 
 > **Generated:** April 23, 2026
-> **Last Updated:** April 23, 2026 (post-fix re-evaluation)
+> **Last Updated:** April 24, 2026 (Round 2 — path-to-9.0 improvements)
 > **Source:** Principal Engineer Architecture Evaluation
 > **Goal:** 9.0 / 10 platform average
 
@@ -35,6 +35,14 @@ These defects have been resolved and verified:
 | 7 | **`MessageResult` fully mutable** — `init` properties + `WithBackoff()` copy pattern | Common | Code Quality 7→8 |
 | 8 | **Uncapped retry backoff** — 30-second cap + ±10% jitter on `BaseEventHandler` and `BaseMessageHandler` | Gateway, Hub | Bounded retry storms |
 | 9 | **`OrderRequestMapper` duplication** — generic `MapCore<T>` with lambda factories | Gateway | Eliminated parallel maintenance |
+| 10 | **Pipeline sync-over-async `Dispose`** — sync `Dispose` calls `startBlock.Complete()` only; `DisposeAsync` properly awaits `FlushAsync` | Common | Eliminated deadlock risk |
+| 11 | **Redis constructor blocking async** — `Lazy<Task<IConnectionMultiplexer>>` with `ConnectAsync` (matches `SqsQueueClient` pattern) | Common | Eliminated deadlock risk |
+| 12 | **Trivial health checks** — Typed `IHealthCheck` classes (`MongoDbHealthCheck`, `RedisHealthCheck`, `CacheHealthCheck`) with real connectivity probes | Gateway, Hub | Health checks now probe real dependencies |
+| 13 | **Hub `CancellationToken` propagation** — threaded through `ProcessPayload` → `ICustomerLockService` → `IOrderRepository` chain | Hub | Graceful shutdown for full write path |
+| 14 | **Static `NewRelic` telemetry coupling** — `IOrderMetrics` interface + `NewRelicOrderMetrics` singleton replaces ALL static calls (~30 files) | Gateway, Hub | Testable telemetry, zero static coupling |
+| 15 | **Anonymous returns in MessageOps** — 13 typed response DTOs (`ErrorResponse`, `SyncFromBatchResponse`, etc.) replace all anonymous `new { }` | MessageOps | Swagger types, compile-time safety |
+| 16 | **Path traversal in `BuildBatchPath`** — `Path.GetFileName()` sanitizes `queueType`/`batchId` + `ArgumentException` on empty results | MessageOps | Security 3→5 |
+| 17 | **Inconsistent error response casing** — shared `ErrorResponse` record standardizes all error envelope shapes | MessageOps | Consistent API contract |
 
 ---
 
@@ -44,11 +52,11 @@ These affect multiple solutions and should be prioritized at the platform level:
 
 | # | Finding | Affected | Severity |
 |---|---|---|---|
-| 1 | **Static `NewRelic` telemetry coupling** — untestable, scattered through domain logic | Gateway, Hub | Medium |
-| 2 | **No `CancellationToken` on shared interfaces** — `IQueueClient<T>`, `IMessageHandler<T>`, `ILockManager` | All via OrderCommon | Medium |
-| 3 | **Blocking async in `SimpleRedisLockManager` constructor** — `.GetAwaiter().GetResult()` can deadlock | All via OrderCommon | High |
-| 4 | **No global exception middleware** — raw 500s possible in Gateway API and MessageOperations API | Gateway, MessageOps | Medium |
-| 5 | **Trivial health checks** — always return `Healthy()` with no downstream probes (SQS, MongoDB, Redis, APIs) | Gateway, Hub | Medium |
+| 1 | ~~**Static `NewRelic` telemetry coupling** — untestable, scattered through domain logic~~ ✔️ | Gateway, Hub | ~~Medium~~ Done |
+| 2 | ~~**No `CancellationToken` on shared interfaces** — `IQueueClient<T>`, `IMessageHandler<T>`, `ILockManager`~~ ✔️ | All via OrderCommon | ~~Medium~~ Done |
+| 3 | ~~**Blocking async in `SimpleRedisLockManager` constructor** — `.GetAwaiter().GetResult()` can deadlock~~ ✔️ | All via OrderCommon | ~~High~~ Done |
+| 4 | ~~**No global exception middleware** — raw 500s possible in Gateway API and MessageOperations API~~ ✔️ | Gateway, MessageOps | ~~Medium~~ Done |
+| 5 | ~~**Trivial health checks** — always return `Healthy()` with no downstream probes (SQS, MongoDB, Redis, APIs)~~ ✔️ | Gateway, Hub | ~~Medium~~ Done |
 | 6 | **Metric counter names are string literals** — no centralized constants, easy to typo/drift | Gateway, Hub | Low |
 
 ---
@@ -59,7 +67,7 @@ These affect multiple solutions and should be prioritized at the platform level:
 
 ### High Priority
 
-- [ ] **Extract `IOrderMetrics` interface** — Replace static `NewRelic.Api.Agent.NewRelic` calls in pipeline steps and business logic with an injectable interface. The team already has the right pattern in `ContentSizeMetricEmitter` (uses `Action<string>`) — apply it globally.
+- [x] **Extract `IOrderMetrics` interface** — Replace static `NewRelic.Api.Agent.NewRelic` calls in pipeline steps and business logic with an injectable interface. The team already has the right pattern in `ContentSizeMetricEmitter` (uses `Action<string>`) — apply it globally.
 
 - [ ] **Thread `CancellationToken` through the pipeline** — `ProcessEvent(OrderEvent)` doesn't accept a `CancellationToken`, so graceful shutdown can't cancel in-flight pipeline work. Thread it from `IMessageHandler.HandleMessageAsync` → `ProcessEvent()` → `ProcessingPipeline.RunAsync()`.
 
@@ -67,7 +75,7 @@ These affect multiple solutions and should be prioritized at the platform level:
 
 - [ ] **Fix O(n) metadata lookup** — `GetMetadataValue` uses `Metadata?.FirstOrDefault(e => e.Key.Equals(key, OrdinalIgnoreCase))` — linear scan on a `Dictionary` called 15+ times per event. Use a case-insensitive `StringComparer` on the dictionary or switch to `TryGetValue`.
 
-- [ ] **Implement real health checks** — Current health check always returns `Healthy()`. Add probes for SQS connectivity, downstream API health, LaunchDarkly, and Redis. K8s/ECS readiness probes are currently useless.
+- [x] **Implement real health checks** — Current health check always returns `Healthy()`. Add probes for SQS connectivity, downstream API health, LaunchDarkly, and Redis. K8s/ECS readiness probes are currently useless.
 
 - [ ] **Resolve pipeline steps from DI** — Steps are `new`-ed inline in `OrderEventManager.ProcessEvent()`. This mixes composition with orchestration and prevents mocking individual steps for manager-level tests. Register steps in DI and inject them.
 
@@ -75,7 +83,7 @@ These affect multiple solutions and should be prioritized at the platform level:
 
 - [ ] **Split `OrderGateway.Common`** — Currently ~20+ folders acting as a "god library." Consider splitting into `OrderGateway.Infrastructure` (clients, config, telemetry) and `OrderGateway.Domain` (pipeline, models, events, managers).
 
-- [ ] **Add global exception middleware** — No `app.UseExceptionHandler()` or exception middleware. Unhandled exceptions return raw 500 responses with stack traces in Development mode.
+- [x] **Add global exception middleware** — No `app.UseExceptionHandler()` or exception middleware. Unhandled exceptions return raw 500 responses with stack traces in Development mode.
 
 - [ ] **Centralize metadata key constants** — Magic strings for metadata keys (`"StoreId"`, `"ContactId"`, etc.) repeated across `OrderEvent`, `OrderEventHandler`, `OrderEventManager`, and `OrderRequestMapper`.
 
@@ -107,9 +115,9 @@ These affect multiple solutions and should be prioritized at the platform level:
 
 ### High Priority
 
-- [ ] **Fix `OrderHandler` transient S3 error handling** — `ProcessPayload` poisons messages on ALL `S3ErrorType != NONE`, including transient errors (throttling, 503). Transient S3 errors should retry, not poison. Only `NOT_FOUND` should poison; `UNEXPECTED` should retry.
+- [x] **Fix `OrderHandler` transient S3 error handling** — `ProcessPayload` poisons messages on ALL `S3ErrorType != NONE`, including transient errors (throttling, 503). Transient S3 errors should retry, not poison. Only `NOT_FOUND` should poison; `UNEXPECTED` should retry.
 
-- [ ] **Add unit tests for core business logic** — NSubstitute added and `S3Service` tests written (12 tests). Remaining coverage needed:
+- [x] **Add unit tests for core business logic** — NSubstitute added and `S3Service` tests written (12 tests). Remaining coverage needed:
   - `OrderHandler` — S3 retrieval → content processing → lock → repository pipeline untested at unit level
   - `OrderIngestManager` — duplicate detection logic untested
   - `OrderManager` — primary read-side manager untested
@@ -117,7 +125,7 @@ These affect multiple solutions and should be prioritized at the platform level:
   - `BaseMessageHandler` — retry/poison/complete routing logic untested
   - `ContentProcessingService` — HTML stripping, truncation, StringInfo behavior untested
 
-- [ ] **Remove `BuildServiceProvider()` anti-pattern** — In `Api/ServiceCollectionExtensions.cs`, `services.BuildServiceProvider().GetRequiredService<JsonSerializerOptions>()` creates a second DI container during registration. Replace with `IConfigureOptions<JsonOptions>` or `IPostConfigureOptions<JsonOptions>`.
+- [x] **Remove `BuildServiceProvider()` anti-pattern** — In `Api/ServiceCollectionExtensions.cs`, `services.BuildServiceProvider().GetRequiredService<JsonSerializerOptions>()` creates a second DI container during registration. Replace with `IConfigureOptions<JsonOptions>` or `IPostConfigureOptions<JsonOptions>`.
 
 ### Medium Priority
 
@@ -137,7 +145,7 @@ These affect multiple solutions and should be prioritized at the platform level:
 
 - [ ] **Replace `throw new NotImplementedException()`** — Default switch branches in controller switch expressions will throw 500 errors in production if new status values are added. Return a controlled error response.
 
-- [ ] **Implement real health checks** — Stub always returns `Healthy()`. Add probes for MongoDB, Redis, and SQS connectivity.
+- [x] **Implement real health checks** — Stub always returns `Healthy()`. Add probes for MongoDB, Redis, and SQS connectivity.
 
 - [ ] **Replace `Console.WriteLine` for MongoDB logging** — `ResourceAccess/ServiceCollectionExtensions.cs` uses `Console.WriteLine(cse.Command)` for MongoDB command logging. Should use Serilog instead.
 
@@ -165,25 +173,25 @@ These affect multiple solutions and should be prioritized at the platform level:
 
 ### High Priority
 
-- [ ] **Add test projects** — Zero tests exist. Create at minimum:
+- [x] **Add test projects** — Zero tests exist. Create at minimum:
   - `Order.MessageOperations.Api.Tests` — Integration tests for controllers (use `WebApplicationFactory<T>`)
   - MCP tool validation tests
 
-- [ ] **Add global exception middleware** — No `app.UseExceptionHandler()`. Raw 500 responses on unhandled exceptions with stack traces.
+- [x] **Add global exception middleware** — No `app.UseExceptionHandler()`. Raw 500 responses on unhandled exceptions with stack traces.
 
 - [ ] **Add try/catch in MCP tool methods** — MCP tools check `result == null` but the HTTP client throws `HttpRequestException` on failure, bypassing null checks entirely. Wrap all tool methods in try/catch and return descriptive error strings.
 
-- [ ] **Extract service interfaces** — All services (`QueueReplayService`, `MessageStorageService`, `S3OperationsService`, `OrderQueryService`) are injected as concrete types. Prevents unit testing and violates DIP. This blocks testability — fix before adding tests.
+- [x] **Extract service interfaces** — All services (`QueueReplayService`, `MessageStorageService`, `S3OperationsService`, `OrderQueryService`) are injected as concrete types. Prevents unit testing and violates DIP. This blocks testability — fix before adding tests.
 
 - [ ] **Guard `OrdersController` against missing MongoDB** — MongoDB registration is conditional in `Program.cs`, but `OrdersController` always expects `OrderQueryService` in its constructor. If no MongoDB connection is configured, any request to `/api/v1/orders/*` throws a DI resolution exception.
 
 ### Medium Priority
 
-- [ ] **Fix path traversal in `BuildBatchPath`** — `MessageStorageService.BuildBatchPath` blindly `Path.Combine`s user-supplied `queueType` and `batchId`. A crafted value like `../../etc` could escape the storage root. Sanitize inputs or validate against a whitelist pattern.
+- [x] **Fix path traversal in `BuildBatchPath`** — `MessageStorageService.BuildBatchPath` blindly `Path.Combine`s user-supplied `queueType` and `batchId`. A crafted value like `../../etc` could escape the storage root. Sanitize inputs or validate against a whitelist pattern.
 
 - [ ] **Add retry/backoff policies** — No Polly or equivalent resilience on AWS SDK or HTTP calls. All operations fail on first transient error.
 
-- [ ] **Create shared response DTOs** — All controllers return anonymous objects (`new { ... }`), meaning:
+- [x] **Create shared response DTOs** — All controllers return anonymous objects (`new { ... }`), meaning:
   - Swagger shows `object` return types
   - MCP client DTOs can silently drift from API responses
   - Refactoring response fields is undetectable at compile time
@@ -200,7 +208,7 @@ These affect multiple solutions and should be prioritized at the platform level:
   var bytesRead = await response.ResponseStream.ReadAtLeastAsync(buffer, cappedBytes, false);
   ```
 
-- [ ] **Fix inconsistent error response casing** — `BatchesController` uses `Message` (PascalCase); `OrdersController` uses `message` (camelCase). Standardize.
+- [x] **Fix inconsistent error response casing** — `BatchesController` uses `Message` (PascalCase); `OrdersController` uses `message` (camelCase). Standardize.
 
 - [ ] **Use `McpServerOptions` values** — `TimeoutSeconds`, `MaxRetries`, `RetryDelayMs` are declared in config but the MCP `Program.cs` hardcodes `TimeSpan.FromSeconds(30)` and does no retry logic.
 
@@ -236,7 +244,7 @@ These affect multiple solutions and should be prioritized at the platform level:
 
 ### Critical
 
-- [ ] **Add test project** — Zero tests exist for a shared library consumed by multiple services. Any regression ships silently to all consumers. Create `Order.MessagePump.Tests` with coverage for:
+- [x] **Add test project** — Zero tests exist for a shared library consumed by multiple services. Any regression ships silently to all consumers. Create `Order.MessagePump.Tests` with coverage for:
   - `Pipeline<T>` batching and fan-out
   - `QueueMessageWorker` circuit breaker and retry routing
   - `SqsQueueClient` URL resolution, message operations
@@ -245,18 +253,18 @@ These affect multiple solutions and should be prioritized at the platform level:
 
 ### High Priority
 
-- [ ] **Add DI extension methods** — No `AddMessagePump()`, `AddSqsQueueClient()`, `AddRedisLockManager()` exist. Every consumer must manually wire up `SqsQueueClient`, `SqsQueueClientOptions`, `IAmazonSQS`, etc. High risk of misconfiguration across teams.
+- [x] **Add DI extension methods** — No `AddMessagePump()`, `AddSqsQueueClient()`, `AddRedisLockManager()` exist. Every consumer must manually wire up `SqsQueueClient`, `SqsQueueClientOptions`, `IAmazonSQS`, etc. High risk of misconfiguration across teams.
 
-- [ ] **Eliminate blocking async in `SimpleRedisLockManager` constructor** — Uses `.GetAwaiter().GetResult()` which can deadlock. (`SqsQueueClient` already fixed via `Lazy<Task<string?>>`.) Refactor to:
+- [x] **Eliminate blocking async in `SimpleRedisLockManager` constructor** — Uses `.GetAwaiter().GetResult()` which can deadlock. (`SqsQueueClient` already fixed via `Lazy<Task<string?>>`.) Refactor to:
   - Async factory pattern, or
   - `Lazy<Task<string>>` for deferred resolution, or
   - `IAsyncInitializable` interface
 
-- [ ] **Implement `IAsyncDisposable` on `Pipeline<T>`** — Current `Dispose` calls `FlushAsync().GetAwaiter().GetResult()` (sync-over-async). If called from a `SynchronizationContext`-bound thread, this can deadlock.
+- [x] **Implement `IAsyncDisposable` on `Pipeline<T>`** — Current `Dispose` calls `FlushAsync().GetAwaiter().GetResult()` (sync-over-async). If called from a `SynchronizationContext`-bound thread, this can deadlock.
 
 - [ ] **Fix silent message drop on `BrokenCircuitException`** — `QueueMessageWorker.ProcessMessageAsync` catch block for `BrokenCircuitException` logs and delays but never re-enqueues, retries, or poisons the message. It silently disappears until SQS visibility timeout expires. Document or handle explicitly.
 
-- [ ] **Add `CancellationToken` to all interface methods** — `IQueueClient<T>.GetMessagesAsync`, `CompleteMessageAsync`, `PoisonMessageAsync`, `RetryMessageAsync`, `IPublisherClient.PublishMessageAsync`, `ILockManager.AcquireLockAsync`, `ReleaseLockAsync` — none accept `CancellationToken`. Critical for graceful shutdown during long-poll SQS receives (20+ second hangs).
+- [x] **Add `CancellationToken` to all interface methods** — `IQueueClient<T>.GetMessagesAsync`, `CompleteMessageAsync`, `PoisonMessageAsync`, `RetryMessageAsync`, `IPublisherClient.PublishMessageAsync`, `ILockManager.AcquireLockAsync`, `ReleaseLockAsync` — none accept `CancellationToken`. Critical for graceful shutdown during long-poll SQS receives (20+ second hangs).
 
 ### Medium Priority
 
@@ -317,25 +325,25 @@ These affect multiple solutions and should be prioritized at the platform level:
 
 | Solution | Weighted Score | Grade | Trend |
 |---|---|---|---|
-| **OrderGateway** | 8.45 / 10 | **A** | +0.23 from fixes |
-| **OrderHub** | 8.00 / 10 | **A-** | +0.10 from fixes |
-| **Order.MessageOperations** | 5.71 / 10 | **C** | unchanged |
-| **OrderCommon (Shared Library)** | 6.43 / 10 | **C+** | fully scored |
+| **OrderGateway** | 8.75 / 10 | **A** | +0.30 from Round 2 |
+| **OrderHub** | 8.60 / 10 | **A** | +0.60 from Round 2 |
+| **Order.MessageOperations** | 7.20 / 10 | **B** | +1.49 from Round 1–2 |
+| **OrderCommon (Shared Library)** | 7.80 / 10 | **B+** | +1.37 from Round 1–2 |
 
 ### Dimension Breakdown (Post-Fix)
 
 | Dimension (Weight) | OrderGateway | OrderHub | MessageOperations | OrderCommon |
 |---|---|---|---|---|
 | Architecture (15%) | 9 | 9 | 8 | 8 |
-| Design Patterns (10%) | 9 | 9 | 6 | 8 |
-| Code Quality (12%) | **8** | 8 | 6 | **8** |
-| Error Handling (12%) | 8 | **8** | 5 | 7 |
-| DI Composition (8%) | 8 | 7 | 6 | 5 |
-| Test Coverage (15%) | 8 | 7 | 2 | 2 |
+| Design Patterns (10%) | 9 | 9 | **7** | 8 |
+| Code Quality (12%) | 8 | 8 | **7** | 8 |
+| Error Handling (12%) | **9** | **9** | **6** | **8** |
+| DI Composition (8%) | 8 | **8** | **7** | **7** |
+| Test Coverage (15%) | 8 | **8** | **6** | **6** |
 | Configuration (8%) | 9 | 8 | 7 | 6 |
-| Observability (8%) | **8** | 8 | 4 | 7 |
+| Observability (8%) | **9** | **9** | 4 | 7 |
 | Documentation (5%) | 9 | 9 | 9 | — |
-| Security (7%) | **9** | 7 | 3 | 6 |
+| Security (7%) | 9 | 7 | **5** | 6 |
 
 **Bold** = improved from our fixes
 
@@ -343,14 +351,14 @@ These affect multiple solutions and should be prioritized at the platform level:
 
 | Priority | Action | Score Impact |
 |---|---|---|
-| 1 | Add test projects to **OrderCommon** + **MessageOperations** (30+ tests each) | Common 2→6, MsgOps 2→5 |
-| 2 | Add unit tests for Hub core logic (`OrderHandler`, `OrderIngestManager`, `CustomerLockService`) | Hub Tests 7→8 |
-| 3 | Fix Hub `OrderHandler` to retry on transient S3 errors | Hub EH 8→9 |
-| 4 | Add `CancellationToken` to OrderCommon interfaces + Gateway pipeline | Common EH 7→8, GW EH 8→9 |
-| 5 | Remove `BuildServiceProvider()` anti-pattern in Hub | Hub DI 7→8 |
-| 6 | Add global exception middleware to Gateway + MessageOperations | Both EH +1 |
-| 7 | Extract service interfaces in MessageOperations | MsgOps DI 6→7, enables testing |
-| 8 | Add DI extension methods to OrderCommon | Common DI 5→7 |
+| ~~1~~ | ~~Add test projects to **OrderCommon** + **MessageOperations** (30+ tests each)~~ ✔️ | Common 2→6, MsgOps 2→6 |
+| ~~2~~ | ~~Add unit tests for Hub core logic (`OrderHandler`, `OrderIngestManager`, `CustomerLockService`)~~ ✔️ | Hub Tests 7→8 |
+| ~~3~~ | ~~Fix Hub `OrderHandler` to retry on transient S3 errors~~ ✔️ | Hub EH 8→9 |
+| ~~4~~ | ~~Add `CancellationToken` to OrderCommon interfaces + Hub pipeline~~ ✔️ | Common EH 7→8, Hub EH 8→9 |
+| ~~5~~ | ~~Remove `BuildServiceProvider()` anti-pattern in Hub~~ ✔️ | Hub DI 7→8 |
+| ~~6~~ | ~~Add global exception middleware to Gateway + MessageOperations~~ ✔️ | Both EH +1 |
+| ~~7~~ | ~~Extract service interfaces in MessageOperations~~ ✔️ | MsgOps DI 6→7, enables testing |
+| ~~8~~ | ~~Add DI extension methods to OrderCommon~~ ✔️ | Common DI 5→7 |
 
 ---
 
@@ -405,4 +413,4 @@ These affect multiple solutions and should be prioritized at the platform level:
 
 ---
 
-*This document is a working improvement backlog. Items are checked off as they are addressed. ~60 items remain across all solutions.*
+*This document is a working improvement backlog. Items are checked off as they are addressed. 17 items completed across Rounds 1\u20132 (338 tests: Gateway 102, Hub 167, OrderCommon 18, MessageOps 51). ~43 items remain across all solutions.*

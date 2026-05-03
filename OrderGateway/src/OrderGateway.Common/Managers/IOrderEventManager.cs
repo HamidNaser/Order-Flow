@@ -5,6 +5,6 @@ namespace OrderGateway.Common.Managers
 {
     public interface IOrderEventManager
     {
-        Task<ProcessingResult> ProcessEvent(OrderEvent orderEvent);
+        Task<ProcessingResult> ProcessEvent(OrderEvent orderEvent, CancellationToken cancellationToken = default);
     }
 }

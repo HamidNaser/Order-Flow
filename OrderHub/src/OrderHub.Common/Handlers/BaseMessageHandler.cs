@@ -1,28 +1,27 @@
 using Amazon.SQS.Model;
 using OrderHub.Common.Configuration.Queues;
 using OrderHub.Common.Models;
+using OrderHub.Common.Telemetry;
 using Order.MessagePump.Handlers;
 using Order.MessagePump.Messages;
 using Microsoft.Extensions.Options;
-using NewRelic.Api.Agent;
 using Serilog;
 using Serilog.Context;
 
 namespace OrderHub.Common.Handlers;
 
-public abstract class BaseMessageHandler<TPayload>(IOptions<MessageHandlerOptions> options) : IMessageHandler<Message>
+public abstract class BaseMessageHandler<TPayload>(IOrderMetrics metrics, IOptions<MessageHandlerOptions> options) : IMessageHandler<Message>
 {
-    private readonly IAgent _agent = NewRelic.Api.Agent.NewRelic.GetAgent();
     private readonly int _maxMessageRetries = options.Value.MaxMessageRetries;
 
     protected abstract string MessageType { get; }
     protected abstract ParsingResult<TPayload> ParsePayload(Message message);
-    protected abstract Task<ProcessingResult> ProcessPayload(TPayload payload);
+    protected abstract Task<ProcessingResult> ProcessPayload(TPayload payload, CancellationToken cancellationToken);
     protected abstract DisposableList CreateLogContext(TPayload payload);
 
-    public async Task<MessageResult> HandleMessageAsync(Message message)
+    public async Task<MessageResult> HandleMessageAsync(Message message, CancellationToken cancellationToken = default)
     {
-        _agent.CurrentTransaction.AddCustomAttribute("Custom/MessageType", MessageType);
+        metrics.AddCustomAttribute("Custom/MessageType", MessageType);
 
         int receiveCount = 1;
 
@@ -47,7 +46,7 @@ public abstract class BaseMessageHandler<TPayload>(IOptions<MessageHandlerOption
             var payload = parsingResult.Payload!;
             using var logContext = CreateLogContext(payload);
 
-            var processingResult = await ProcessPayload(payload);
+            var processingResult = await ProcessPayload(payload, cancellationToken);
 
             return processingResult.Action switch
             {
@@ -66,7 +65,7 @@ public abstract class BaseMessageHandler<TPayload>(IOptions<MessageHandlerOption
                 .ForContext<BaseMessageHandler<TPayload>>()
                 .Error(ex, "Error processing {MessageType} payload", MessageType);
 
-            NewRelic.Api.Agent.NewRelic.IncrementCounter($"Custom/{MessageType}/Processing/Error/UnhandledException");
+            metrics.IncrementCounter($"Custom/{MessageType}/Processing/Error/UnhandledException");
 
             var retryResult = ProcessingResult.Retry(ex, $"Unhandled exception processing {MessageType} payload.");
             return OnRetry(receiveCount, retryResult);
@@ -89,7 +88,7 @@ public abstract class BaseMessageHandler<TPayload>(IOptions<MessageHandlerOption
         if (approximateReceiveCount > _maxMessageRetries)
         {
             var reason = $"Exceeded max retries ({_maxMessageRetries}) for {MessageType} payload. Poisoning message.";
-            NewRelic.Api.Agent.NewRelic.IncrementCounter($"Custom/{MessageType}/Processing/Error/RetryLimitPoison");
+            metrics.IncrementCounter($"Custom/{MessageType}/Processing/Error/RetryLimitPoison");
 
             // NOTE: (explicit double logging) Logging the poison with context & currently configured to log via MessagePump (reason only).
             Log
@@ -105,7 +104,7 @@ public abstract class BaseMessageHandler<TPayload>(IOptions<MessageHandlerOption
             return OnPoison(newResult);
         }
 
-        NewRelic.Api.Agent.NewRelic.IncrementCounter($"Custom/{MessageType}/Processing/Result/Retry");
+        metrics.IncrementCounter($"Custom/{MessageType}/Processing/Result/Retry");
         result = result.WithBackoff(GetRetryDelay(approximateReceiveCount));
 
         return result;
@@ -116,7 +115,7 @@ public abstract class BaseMessageHandler<TPayload>(IOptions<MessageHandlerOption
         if (approximateReceiveCount > _maxMessageRetries)
         {
             var details = $"Exceeded max retries ({_maxMessageRetries}) for {MessageType} payload. Completing message.";
-            NewRelic.Api.Agent.NewRelic.IncrementCounter($"Custom/{MessageType}/Processing/Info/RetryLimitComplete");
+            metrics.IncrementCounter($"Custom/{MessageType}/Processing/Info/RetryLimitComplete");
 
             Log
                 .ForContext<BaseMessageHandler<TPayload>>()
@@ -132,7 +131,7 @@ public abstract class BaseMessageHandler<TPayload>(IOptions<MessageHandlerOption
             return OnComplete(newResult);
         }
 
-        NewRelic.Api.Agent.NewRelic.IncrementCounter($"Custom/{MessageType}/Processing/Result/Retry");
+        metrics.IncrementCounter($"Custom/{MessageType}/Processing/Result/Retry");
         result = result.WithBackoff(GetRetryDelay(approximateReceiveCount));
 
         Log
@@ -149,7 +148,7 @@ public abstract class BaseMessageHandler<TPayload>(IOptions<MessageHandlerOption
 
     private ProcessingResult OnComplete(ProcessingResult result)
     {
-        NewRelic.Api.Agent.NewRelic.IncrementCounter(
+        metrics.IncrementCounter(
             result.IsSuccess
                 ? $"Custom/{MessageType}/Processing/Result/Processed"
                 : $"Custom/{MessageType}/Processing/Result/NotProcessed"
@@ -160,7 +159,7 @@ public abstract class BaseMessageHandler<TPayload>(IOptions<MessageHandlerOption
 
     private ProcessingResult OnPoison(ProcessingResult result)
     {
-        NewRelic.Api.Agent.NewRelic.IncrementCounter($"Custom/{MessageType}/Processing/Result/Poison");
+        metrics.IncrementCounter($"Custom/{MessageType}/Processing/Result/Poison");
 
         return result;
     }

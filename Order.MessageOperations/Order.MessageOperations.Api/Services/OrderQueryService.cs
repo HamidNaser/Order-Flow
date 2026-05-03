@@ -10,7 +10,7 @@ namespace Order.MessageOperations.Api.Services;
 /// This service does NOT reference OrderHub.Common - it uses its own lightweight entity classes
 /// to maintain full decoupling from the business layer.
 /// </summary>
-public class OrderQueryService
+public class OrderQueryService : IOrderQueryService
 {
     private const string DatabaseName = "orders";
     private const string CollectionName = "orders";

@@ -1,10 +1,11 @@
 using OrderGateway.Common.Models.Events;
 using OrderGateway.Common.Processing.Abstractions;
+using OrderGateway.Common.Telemetry;
 using Serilog;
 
 namespace OrderGateway.Common.Processing.Steps;
 
-public sealed class ValidateStep<TEvent> : IProcessingStep<TEvent> where TEvent : IEvent
+public sealed class ValidateStep<TEvent>(IOrderMetrics metrics) : IProcessingStep<TEvent> where TEvent : IEvent
 {
     public Task<StepResult> ExecuteAsync(TEvent evt, StepContext context, CancellationToken ct = default)
     {
@@ -23,8 +24,8 @@ public sealed class ValidateStep<TEvent> : IProcessingStep<TEvent> where TEvent 
             nameof(ValidateStep<TEvent>), eventName, evt.StoreId, errorSummary);
 
         // Emit detailed per-field counters (separated from validation logic)
-        evt.EmitValidationCounters();
-        NewRelic.Api.Agent.NewRelic.IncrementCounter($"Custom/{eventNameWithoutEvent}/Processing/Error/InvalidOrder");
+        evt.EmitValidationCounters(metrics);
+        metrics.IncrementCounter($"Custom/{eventNameWithoutEvent}/Processing/Error/InvalidOrder");
 
         return Task.FromResult(StepResult.Complete("Order event failed validation"));
     }

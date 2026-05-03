@@ -9,7 +9,8 @@ namespace OrderGateway.Common.Processing.Steps;
 
 public sealed class RetrieveOrderContentStep(
     ICloudContentService cloudContentService,
-    IContentSizeMetricEmitter contentSizeMetricEmitter
+    IContentSizeMetricEmitter contentSizeMetricEmitter,
+    IOrderMetrics metrics
 ) : IProcessingStep<OrderEvent>
 {
     public async Task<StepResult> ExecuteAsync(OrderEvent evt, StepContext context, CancellationToken ct = default)
@@ -36,13 +37,13 @@ public sealed class RetrieveOrderContentStep(
             var content = await cloudContentService.ReadContentAsync(key, ct);
             if (content == null)
             {
-                NewRelic.Api.Agent.NewRelic.IncrementCounter("Custom/Order/Processing/Info/CloudContentNotFound");
+                metrics.IncrementCounter("Custom/Order/Processing/Info/CloudContentNotFound");
                 Log.Warning("{PipelineStep}: Cloud content not found for key {Key}", nameof(RetrieveOrderContentStep), key);
                 return StepResult.Continue();
             }
             if (string.IsNullOrWhiteSpace(content))
             {
-                NewRelic.Api.Agent.NewRelic.IncrementCounter("Custom/Order/Processing/Info/CloudContentEmpty");
+                metrics.IncrementCounter("Custom/Order/Processing/Info/CloudContentEmpty");
                 return StepResult.Continue();
             }
 
@@ -52,7 +53,7 @@ public sealed class RetrieveOrderContentStep(
         }
         catch (Exception ex)
         {
-            NewRelic.Api.Agent.NewRelic.IncrementCounter("Custom/Order/Processing/Error/CloudContentFailure");
+            metrics.IncrementCounter("Custom/Order/Processing/Error/CloudContentFailure");
             Log.Debug(ex, "{PipelineStep}: Cloud content retrieval failure for key {Key}", nameof(RetrieveOrderContentStep), key);
 
             return StepResult.Complete(MessageResult.Poison(reason: $"Cloud content retrieval failure for key {key}."));

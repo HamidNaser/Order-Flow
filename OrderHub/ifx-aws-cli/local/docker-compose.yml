@@ -143,17 +143,9 @@ services:
         # OrderHub queues
         awslocal sqs create-queue --queue-name order-hub-express-order 2>/dev/null || true
         awslocal sqs create-queue --queue-name order-hub-standard-order 2>/dev/null || true
-        awslocal sqs create-queue --queue-name order-hub-fulfillment-status 2>/dev/null || true
         # OrderHub deadletter queues
         awslocal sqs create-queue --queue-name order-hub-express-order-deadletter 2>/dev/null || true
         awslocal sqs create-queue --queue-name order-hub-standard-order-deadletter 2>/dev/null || true
-        awslocal sqs create-queue --queue-name order-hub-fulfillment-status-deadletter 2>/dev/null || true
-        # OrderGateway queues
-        awslocal sqs create-queue --queue-name order-gateway-digital 2>/dev/null || true
-        awslocal sqs create-queue --queue-name order-gateway-shipment 2>/dev/null || true
-        # OrderGateway deadletter queues
-        awslocal sqs create-queue --queue-name order-gateway-digital-deadletter 2>/dev/null || true
-        awslocal sqs create-queue --queue-name order-gateway-shipment-deadletter 2>/dev/null || true
         echo ""
         echo "[INFO] Configuring SQS redrive policies..."
         set_redrive() {
@@ -168,10 +160,6 @@ services:
         # OrderHub redrive policies
         set_redrive order-hub-express-order order-hub-express-order-deadletter
         set_redrive order-hub-standard-order order-hub-standard-order-deadletter
-        set_redrive order-hub-fulfillment-status order-hub-fulfillment-status-deadletter
-        # OrderGateway redrive policies
-        set_redrive order-gateway-digital order-gateway-digital-deadletter
-        set_redrive order-gateway-shipment order-gateway-shipment-deadletter
         echo ""
         echo "[INFO] Purging DLQs..."
         purge_queue() {
@@ -182,9 +170,6 @@ services:
         # Purge all deadletter queues
         purge_queue order-hub-express-order-deadletter
         purge_queue order-hub-standard-order-deadletter
-        purge_queue order-hub-fulfillment-status-deadletter
-        purge_queue order-gateway-digital-deadletter
-        purge_queue order-gateway-shipment-deadletter
         echo ""
         echo "[INFO] Configuring S3 event notifications..."
         cat > /tmp/s3-notification-config.json <<'EOF'
@@ -231,7 +216,6 @@ services:
         echo "  Purging main queues to ensure workers start with a clean state."
         purge_queue order-hub-express-order
         purge_queue order-hub-standard-order
-        purge_queue order-hub-fulfillment-status
         echo ""
         echo "[SUCCESS] LocalStack resources initialized!"
         echo "========================================="

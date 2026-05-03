@@ -1,4 +1,6 @@
 using Order.MessageOperations.Api.Configuration;
+using Order.MessageOperations.Api.Models.Requests;
+using Order.MessageOperations.Api.Models.Responses;
 using Order.MessageOperations.Api.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
@@ -10,11 +12,11 @@ namespace Order.MessageOperations.Api.Controllers.V1;
 public class QueuesController : ControllerBase
 {
     private readonly MessageOperationsOptions _options;
-    private readonly QueueReplayService _queueReplayService;
+    private readonly IQueueReplayService _queueReplayService;
 
     public QueuesController(
         IOptions<MessageOperationsOptions> options,
-        QueueReplayService queueReplayService)
+        IQueueReplayService queueReplayService)
     {
         _options = options.Value;
         _queueReplayService = queueReplayService;
@@ -24,15 +26,13 @@ public class QueuesController : ControllerBase
     public IActionResult GetConfiguredQueues()
     {
         var queues = _options.Queues
-            .Select(queue => new
-            {
-                QueueKey = queue.Key,
-                queue.Value.DisplayName,
-                queue.Value.LocalStackQueueName,
-                queue.Value.AwsDlqName,
-                queue.Value.AwsSourceQueueName,
-                queue.Value.Enabled
-            })
+            .Select(queue => new QueueConfigDto(
+                QueueKey: queue.Key,
+                DisplayName: queue.Value.DisplayName,
+                LocalStackQueueName: queue.Value.LocalStackQueueName,
+                AwsDlqName: queue.Value.AwsDlqName,
+                AwsSourceQueueName: queue.Value.AwsSourceQueueName,
+                Enabled: queue.Value.Enabled))
             .OrderBy(queue => queue.QueueKey)
             .ToList();
 
@@ -88,13 +88,69 @@ public class QueuesController : ControllerBase
     {
         var useLocalStack = !target.Equals("aws", StringComparison.OrdinalIgnoreCase);
         var messages = await _queueReplayService.PeekMessagesAsync(queueName, count, useLocalStack, cancellationToken);
-        return Ok(messages.Select(message => new
+        return Ok(messages.Select(message => new PeekedMessageDto(
+            MessageId: message.MessageId,
+            Attributes: message.Attributes,
+            MessageAttributes: message.MessageAttributes,
+            Body: message.Body,
+            BodySize: message.Body?.Length ?? 0)));
+    }
+
+    /// <summary>
+    /// Send a message to a LocalStack queue.
+    /// </summary>
+    [HttpPost("{queueName}/send")]
+    public async Task<IActionResult> SendMessage(
+        string queueName,
+        [FromBody] SendMessageRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(queueName))
         {
-            message.MessageId,
-            message.Attributes,
-            MessageAttributes = message.MessageAttributes,
-            Body = message.Body,
-            BodySize = message.Body?.Length ?? 0
-        }));
+            return BadRequest(new ErrorResponse("Queue name is required"));
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Body))
+        {
+            return BadRequest(new ErrorResponse("Message body is required"));
+        }
+
+        var messageId = await _queueReplayService.SendMessageToLocalStackAsync(
+            queueName,
+            request.Body,
+            request.MessageAttributes,
+            request.MessageGroupId,
+            cancellationToken);
+
+        return Ok(new SendMessageResponse(queueName, messageId));
+    }
+
+    /// <summary>
+    /// Purge all messages from a LocalStack queue.
+    /// </summary>
+    [HttpPost("{queueName}/purge")]
+    public async Task<IActionResult> PurgeQueue(
+        string queueName,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(queueName))
+        {
+            return BadRequest(new ErrorResponse("Queue name is required"));
+        }
+
+        await _queueReplayService.PurgeLocalStackQueueAsync(queueName, cancellationToken);
+        return Ok(new PurgeQueueResponse(queueName, true));
+    }
+
+    /// <summary>
+    /// Purge all configured LocalStack queues (main + DLQ).
+    /// </summary>
+    [HttpPost("purge-all")]
+    public async Task<IActionResult> PurgeAllQueues(CancellationToken cancellationToken = default)
+    {
+        var results = await _queueReplayService.PurgeAllConfiguredLocalStackQueuesAsync(cancellationToken);
+        var purged = results.Count(r => r.Value);
+        var failed = results.Count(r => !r.Value);
+        return Ok(new PurgeAllQueuesResponse(purged, failed, results));
     }
 }

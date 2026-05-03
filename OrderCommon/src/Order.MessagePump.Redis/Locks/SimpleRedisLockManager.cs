@@ -8,24 +8,36 @@ namespace Order.MessagePump.Redis.Locks
 {
     public class SimpleRedisLockManager : ILockManager
     {
-        private readonly IConnectionMultiplexer connection;
+        private readonly Lazy<Task<IConnectionMultiplexer>> _lazyConnection;
 
+        /// <summary>
+        /// Creates a lock manager with deferred async connection.
+        /// Connection is established on first lock operation, avoiding sync-over-async in the constructor.
+        /// </summary>
         public SimpleRedisLockManager(string connectionString)
         {
-            connection = ConnectionMultiplexer.Connect(connectionString);
+            _lazyConnection = new Lazy<Task<IConnectionMultiplexer>>(
+                () => ConnectionMultiplexer.ConnectAsync(connectionString).ContinueWith<IConnectionMultiplexer>(t => t.Result));
         }
 
         public SimpleRedisLockManager(IConnectionMultiplexer connection)
         {
-            this.connection = connection;
+            _lazyConnection = new Lazy<Task<IConnectionMultiplexer>>(
+                () => Task.FromResult(connection));
         }
 
-        public async Task<AcquireLockResponse> AcquireLockAsync(AcquireLockRequest request)
+        private async Task<IDatabase> GetDatabaseAsync()
+        {
+            var connection = await _lazyConnection.Value.ConfigureAwait(false);
+            return connection.GetDatabase();
+        }
+
+        public async Task<AcquireLockResponse> AcquireLockAsync(AcquireLockRequest request, CancellationToken cancellationToken = default)
         {
             var lockReceipt = Guid.NewGuid().ToString();
 
-            var result = await connection
-                .GetDatabase()
+            var db = await GetDatabaseAsync();
+            var result = await db
                 .StringSetAsync(
                     $"{nameof(SimpleRedisLockManager)}-{request.LockId}",
                     lockReceipt,
@@ -45,7 +57,7 @@ namespace Order.MessagePump.Redis.Locks
             };
         }
 
-        public async Task<ReleaseLockResponse> ReleaseLockAsync(ReleaseLockRequest request)
+        public async Task<ReleaseLockResponse> ReleaseLockAsync(ReleaseLockRequest request, CancellationToken cancellationToken = default)
         {
             var lockData = request?.LockData ?? new Dictionary<string, object> { };
             var lockReceipt = lockData.TryGetValue("LockReceipt", out var r) ? r.ToString() : default;
@@ -56,8 +68,8 @@ namespace Order.MessagePump.Redis.Locks
                 return new ReleaseLockResponse { WasReleased = false };
             }
 
-            var result = (bool)await connection
-                .GetDatabase()
+            var db = await GetDatabaseAsync();
+            var result = (bool)await db
                 .ScriptEvaluateAsync(
                     "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end",
                     new RedisKey[] { $"{nameof(SimpleRedisLockManager)}-{lockId}" },

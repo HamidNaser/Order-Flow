@@ -13,12 +13,13 @@ public class RetrieveOrderContentStepTests
 {
     private readonly ICloudContentService _cloudContent = Substitute.For<ICloudContentService>();
     private readonly IContentSizeMetricEmitter _metricEmitter = Substitute.For<IContentSizeMetricEmitter>();
+    private readonly IOrderMetrics _metrics = Substitute.For<IOrderMetrics>();
     private readonly RetrieveOrderContentStep _step;
     private readonly StepContext _ctx = new();
 
     public RetrieveOrderContentStepTests()
     {
-        _step = new RetrieveOrderContentStep(_cloudContent, _metricEmitter);
+        _step = new RetrieveOrderContentStep(_cloudContent, _metricEmitter, _metrics);
     }
 
     private static OrderEvent CreateBaseEvent(Dictionary<string, string>? metadata = null, string? description = null)

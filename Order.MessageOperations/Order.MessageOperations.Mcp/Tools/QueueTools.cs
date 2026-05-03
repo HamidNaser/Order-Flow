@@ -171,6 +171,101 @@ public class QueueTools
         return JsonSerializer.Serialize(result, JsonOptions);
     }
 
+    /// <summary>
+    /// Send a test message to a LocalStack queue.
+    /// </summary>
+    [McpServerTool]
+    [Description("Send a message to a LocalStack queue. Use this to inject test messages into the pipeline (e.g., send to 'order-gateway-incoming' to trigger the Gateway Worker).")]
+    public async Task<string> SendTestMessage(
+        [Description("The LocalStack queue name to send to (e.g., 'order-gateway-incoming')")]
+        string queueName,
+        [Description("The message body (JSON string)")]
+        string body,
+        [Description("Optional message attributes as key-value pairs")]
+        Dictionary<string, string>? messageAttributes = null,
+        [Description("Optional message group ID (for FIFO queues)")]
+        string? messageGroupId = null,
+        CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(queueName))
+        {
+            return "Error: queueName is required.";
+        }
+        if (string.IsNullOrWhiteSpace(body))
+        {
+            return "Error: body is required.";
+        }
+
+        var result = await _client.SendMessageAsync(queueName, body, messageAttributes, messageGroupId, ct);
+
+        if (result == null)
+        {
+            return $"Error: Failed to send message to queue '{queueName}'.";
+        }
+
+        var response = new
+        {
+            success = true,
+            queueName = result.QueueName,
+            messageId = result.MessageId,
+            summary = $"Message sent to '{result.QueueName}' with MessageId: {result.MessageId}"
+        };
+
+        return JsonSerializer.Serialize(response, JsonOptions);
+    }
+
+    /// <summary>
+    /// Purge all messages from a LocalStack queue.
+    /// </summary>
+    [McpServerTool]
+    [Description("Purge all messages from a specific LocalStack queue. Use for test cleanup.")]
+    public async Task<string> PurgeQueue(
+        [Description("The LocalStack queue name to purge (e.g., 'order-gateway-incoming')")]
+        string queueName,
+        CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(queueName))
+        {
+            return "Error: queueName is required.";
+        }
+
+        var result = await _client.PurgeQueueAsync(queueName, ct);
+
+        if (result == null)
+        {
+            return $"Error: Failed to purge queue '{queueName}'.";
+        }
+
+        return $"Successfully purged queue '{result.QueueName}'.";
+    }
+
+    /// <summary>
+    /// Purge all configured LocalStack queues (main queues + DLQs).
+    /// </summary>
+    [McpServerTool]
+    [Description("Purge ALL configured LocalStack queues and their dead-letter queues. Use for full test environment cleanup.")]
+    public async Task<string> PurgeAllQueues(CancellationToken ct = default)
+    {
+        var result = await _client.PurgeAllQueuesAsync(ct);
+
+        if (result == null)
+        {
+            return "Error: Failed to purge queues.";
+        }
+
+        var response = new
+        {
+            purged = result.Purged,
+            failed = result.Failed,
+            results = result.Results,
+            summary = result.Failed == 0
+                ? $"Successfully purged all {result.Purged} queues."
+                : $"Purged {result.Purged} queues, {result.Failed} failed."
+        };
+
+        return JsonSerializer.Serialize(response, JsonOptions);
+    }
+
     private static string TruncateBody(string body, int maxLength)
     {
         if (string.IsNullOrEmpty(body) || body.Length <= maxLength)

@@ -1,4 +1,5 @@
 using Order.MessageOperations.Api.Models;
+using Order.MessageOperations.Api.Models.Responses;
 using Order.MessageOperations.Api.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -12,9 +13,9 @@ namespace Order.MessageOperations.Api.Controllers.V1;
 [Route("api/v1/orders")]
 public class OrdersController : ControllerBase
 {
-    private readonly OrderQueryService _queryService;
+    private readonly IOrderQueryService _queryService;
 
-    public OrdersController(OrderQueryService queryService)
+    public OrdersController(IOrderQueryService queryService)
     {
         _queryService = queryService;
     }
@@ -28,7 +29,7 @@ public class OrdersController : ControllerBase
         var record = await _queryService.GetByIdAsync(storeId, orderId, ct);
 
         if (record == null)
-            return NotFound(new { message = $"Order '{orderId}' not found in Store '{storeId}'." });
+            return NotFound(new ErrorResponse($"Order '{orderId}' not found in Store '{storeId}'."));
 
         return Ok(record);
     }
@@ -45,16 +46,14 @@ public class OrdersController : ControllerBase
         var records = await _queryService.GetByCustomerAsync(storeId, customerId, limit, offset, ct);
         var count = await _queryService.CountByCustomerAsync(storeId, customerId, ct);
 
-        return Ok(new
-        {
-            storeId,
-            customerId,
-            totalCount = count,
-            returned = records.Count,
-            limit,
-            offset,
-            orders = records
-        });
+        return Ok(new CustomerOrdersResponse(
+            StoreId: storeId,
+            CustomerId: customerId,
+            TotalCount: count,
+            Returned: records.Count,
+            Limit: limit,
+            Offset: offset,
+            Orders: records));
     }
 
     /// <summary>
@@ -64,7 +63,7 @@ public class OrdersController : ControllerBase
     public async Task<IActionResult> CountByCustomer(string storeId, string customerId, CancellationToken ct)
     {
         var count = await _queryService.CountByCustomerAsync(storeId, customerId, ct);
-        return Ok(new { storeId, customerId, count });
+        return Ok(new CustomerOrderCountResponse(StoreId: storeId, CustomerId: customerId, Count: count));
     }
 
     /// <summary>
@@ -101,13 +100,11 @@ public class OrdersController : ControllerBase
 
         var records = await _queryService.SearchAsync(storeId, searchParams, ct);
 
-        return Ok(new
-        {
-            storeId,
-            filters = searchParams,
-            returned = records.Count,
-            orders = records
-        });
+        return Ok(new OrderSearchResponse(
+            StoreId: storeId,
+            Filters: searchParams,
+            Returned: records.Count,
+            Orders: records));
     }
 
     /// <summary>
@@ -132,7 +129,7 @@ public class OrdersController : ControllerBase
         var record = await _queryService.FindByProviderAsync(storeId, providerOrderId, providerName, channelType, ct);
 
         if (record == null)
-            return NotFound(new { message = $"Order not found for provider '{providerName}' with ID '{providerOrderId}' in Store '{storeId}'." });
+            return NotFound(new ErrorResponse($"Order not found for provider '{providerName}' with ID '{providerOrderId}' in Store '{storeId}'."));
 
         return Ok(record);
     }
@@ -146,11 +143,9 @@ public class OrdersController : ControllerBase
     {
         var records = await _queryService.GetRecentAsync(storeId, limit, ct);
 
-        return Ok(new
-        {
-            storeId,
-            returned = records.Count,
-            orders = records
-        });
+        return Ok(new RecentOrdersResponse(
+            StoreId: storeId,
+            Returned: records.Count,
+            Orders: records));
     }
 }

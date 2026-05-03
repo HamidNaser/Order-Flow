@@ -118,18 +118,18 @@ namespace OrderGateway.Common.Clients.IngestStandardApi.V1
     {
 
         /// <summary>
-        /// The address for a party (sender or recipient) tied to the shipment order.
+        /// The address identifier for a party (sender or recipient) tied to the order.
         /// </summary>
         [Newtonsoft.Json.JsonProperty("address", Required = Newtonsoft.Json.Required.DisallowNull, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
         [System.ComponentModel.DataAnnotations.Required]
         public string Address { get; set; } = default!;
 
         /// <summary>
-        /// An optional display name for a party (sender or recipient) tied to the shipment order.
+        /// An optional display name for a party (sender or recipient) tied to the order.
         /// <br/>&lt;remarks&gt;
-        /// <br/>The field is a component of the identifier format.
-        /// <br/>identifier format examples with `Name` in bold...&lt;list&gt;&lt;item&gt;&lt;description&gt;"&lt;b&gt;John Doe&lt;/b&gt;" &lt;ORD-ADDR-001&gt;&lt;/description&gt;&lt;/item&gt;&lt;item&gt;&lt;description&gt;"&lt;b&gt;Smith, Jane (CAI - Atlanta)&lt;/b&gt;" &lt;ORD-ADDR-002&gt;&lt;/description&gt;&lt;/item&gt;&lt;/list&gt;
-        /// <br/>This value should NOT include the wrapping double quotes. Please omit them as this will be handled automatically.&lt;/remarks&gt;
+        /// <br/>The display name provides a human-readable label for the address identifier.
+        /// <br/>Examples with `Name` in bold:&lt;list&gt;&lt;item&gt;&lt;description&gt;&lt;b&gt;John Doe&lt;/b&gt;&lt;/description&gt;&lt;/item&gt;&lt;item&gt;&lt;description&gt;&lt;b&gt;Smith, Jane (CAI - Atlanta)&lt;/b&gt;&lt;/description&gt;&lt;/item&gt;&lt;/list&gt;
+        /// <br/>This value should NOT include wrapping double quotes. Please omit them as this will be handled automatically.&lt;/remarks&gt;
         /// </summary>
         [Newtonsoft.Json.JsonProperty("name", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
         public string? Name { get; set; } = default!;

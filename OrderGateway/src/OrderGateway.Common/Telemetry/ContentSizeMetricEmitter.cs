@@ -7,8 +7,8 @@ public sealed class ContentSizeMetricEmitter : IContentSizeMetricEmitter
 {
     private readonly Action<string> _incrementCounter;
 
-    public ContentSizeMetricEmitter()
-        : this(NewRelic.Api.Agent.NewRelic.IncrementCounter)
+    public ContentSizeMetricEmitter(IOrderMetrics metrics)
+        : this(metrics.IncrementCounter)
     {
     }
 
