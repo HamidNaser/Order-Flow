@@ -3,26 +3,25 @@ using Order.MessagePump.Handlers;
 using Order.MessagePump.Messages;
 using OrderGateway.Common.Configuration.Handlers;
 using OrderGateway.Common.Models.Events;
+using OrderGateway.Common.Telemetry;
 using Microsoft.Extensions.Options;
-using NewRelic.Api.Agent;
 using Serilog;
 using OrderGateway.Common.Models;
 
 namespace OrderGateway.Common.Handlers;
 
-public abstract class BaseEventHandler<TEvent>(IOptions<MessageHandlerOptions> options) : IMessageHandler<Message> where TEvent : IEvent
+public abstract class BaseEventHandler<TEvent>(IOrderMetrics metrics, IOptions<MessageHandlerOptions> options) : IMessageHandler<Message> where TEvent : IEvent
 {
-    private readonly IAgent _agent = NewRelic.Api.Agent.NewRelic.GetAgent();
     private readonly int _maxMessageRetries = options.Value.MaxMessageRetries;
 
     protected abstract string EventType { get; }
     protected internal abstract TEvent ParseEvent(Message message);
-    protected abstract Task<ProcessingResult> ProcessEvent(TEvent evt);
+    protected abstract Task<ProcessingResult> ProcessEvent(TEvent evt, CancellationToken cancellationToken = default);
     protected abstract DisposableList CreateLogContext(TEvent evt);
 
-    public async Task<MessageResult> HandleMessageAsync(Message message)
+    public async Task<MessageResult> HandleMessageAsync(Message message, CancellationToken cancellationToken = default)
     {
-        _agent.CurrentTransaction.AddCustomAttribute("Custom/EventType", EventType);
+        metrics.AddCustomAttribute("Custom/EventType", EventType);
 
         TEvent evt;
         try
@@ -40,7 +39,7 @@ public abstract class BaseEventHandler<TEvent>(IOptions<MessageHandlerOptions> o
 
         try
         {
-            var result = await ProcessEvent(evt);
+            var result = await ProcessEvent(evt, cancellationToken);
 
             return result.Action switch
             {
@@ -56,7 +55,7 @@ public abstract class BaseEventHandler<TEvent>(IOptions<MessageHandlerOptions> o
                 .ForContext<BaseEventHandler<TEvent>>()
                 .Error(ex, "Error processing {EventType} event", EventType);
 
-            NewRelic.Api.Agent.NewRelic.IncrementCounter($"Custom/{EventType}/Processing/Error/UnhandledException");
+            metrics.IncrementCounter($"Custom/{EventType}/Processing/Error/UnhandledException");
 
             var result = ProcessingResult.Retry(ex, $"Unhandled exception processing {EventType} event.");
             return OnRetry(evt, result);
@@ -87,7 +86,7 @@ public abstract class BaseEventHandler<TEvent>(IOptions<MessageHandlerOptions> o
         if (evt.ApproximateReceiveCount > _maxMessageRetries)
         {
             var reason = $"Exceeded max retries ({_maxMessageRetries}) for {EventType} event. Poisoning message.";
-            NewRelic.Api.Agent.NewRelic.IncrementCounter($"Custom/{EventType}/Processing/Error/RetryLimitPoison");
+            metrics.IncrementCounter($"Custom/{EventType}/Processing/Error/RetryLimitPoison");
 
             // NOTE: (explicit double logging) Logging the poison with context & currently configured to log via MessagePump (reason only).
             Log
@@ -103,7 +102,7 @@ public abstract class BaseEventHandler<TEvent>(IOptions<MessageHandlerOptions> o
             return OnPoison(newResult);
         }
 
-        NewRelic.Api.Agent.NewRelic.IncrementCounter($"Custom/{EventType}/Processing/Result/Retry");
+        metrics.IncrementCounter($"Custom/{EventType}/Processing/Result/Retry");
 
         return result.WithBackoff(GetRetryDelay(evt));
     }
@@ -112,11 +111,11 @@ public abstract class BaseEventHandler<TEvent>(IOptions<MessageHandlerOptions> o
     {
         if (result.IsSuccess)
         {
-            NewRelic.Api.Agent.NewRelic.IncrementCounter($"Custom/{EventType}/Processing/Result/Ingested");
+            metrics.IncrementCounter($"Custom/{EventType}/Processing/Result/Ingested");
         }
         else
         {
-            NewRelic.Api.Agent.NewRelic.IncrementCounter($"Custom/{EventType}/Processing/Result/NotIngested");
+            metrics.IncrementCounter($"Custom/{EventType}/Processing/Result/NotIngested");
         }
 
         return result;
@@ -124,7 +123,7 @@ public abstract class BaseEventHandler<TEvent>(IOptions<MessageHandlerOptions> o
 
     private ProcessingResult OnPoison(ProcessingResult result)
     {
-        NewRelic.Api.Agent.NewRelic.IncrementCounter($"Custom/{EventType}/Processing/Result/Poison");
+        metrics.IncrementCounter($"Custom/{EventType}/Processing/Result/Poison");
 
         return result;
     }

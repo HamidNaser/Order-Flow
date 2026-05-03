@@ -58,10 +58,10 @@ public class OrderRepository(IMongoClient mongoClient, IOrderMapper mapper) : IO
         return results;
     }
 
-    public async Task<ChannelOrder> InsertAsync(ChannelOrder order)
+    public async Task<ChannelOrder> InsertAsync(ChannelOrder order, CancellationToken cancellationToken = default)
     {
         var orderEntity = mapper.ToEntity(order);
-        await _orderCollection.InsertOneAsync(orderEntity);
+        await _orderCollection.InsertOneAsync(orderEntity, cancellationToken: cancellationToken);
 
         var result = mapper.ToInternalModel(orderEntity);
         return result;

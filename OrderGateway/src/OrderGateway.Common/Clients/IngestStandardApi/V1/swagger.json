@@ -1,4 +1,4 @@
-﻿{
+{
   "openapi": "3.0.4",
   "info": {
     "title": "OrderHubIngestStandardApi",
@@ -6,7 +6,7 @@
     "version": "1.0"
   },
   "paths": {
-    "/api/order/text": {
+    "/api/order/digital": {
       "post": {
         "tags": [
           "Order"
@@ -106,7 +106,7 @@
         ]
       }
     },
-    "/api/order/shipment": {
+    "/api/order/standard": {
       "post": {
         "tags": [
           "Order"
@@ -266,7 +266,7 @@
                 "type": "string",
                 "description": "The title or heading for the shipment order.\r\n<remarks>\r\nThe order body is set using the Content field.</remarks>",
                 "nullable": true,
-                "example": "Re: I'd like to buy this car."
+                "example": "Order #4521 - Vehicle Purchase"
               }
             },
             "additionalProperties": false
@@ -283,14 +283,14 @@
           "address": {
             "minLength": 1,
             "type": "string",
-            "description": "The address for a party (sender or recipient) tied to the shipment order.",
-            "example": "test123@domainname.com"
+            "description": "The address identifier for a party (sender or recipient) tied to the order.",
+            "example": "ORD-ADDR-12345"
           },
           "name": {
             "type": "string",
-            "description": "An optional display name for a party (sender or recipient) tied to the shipment order.\r\n<remarks>\r\nThe field is a component of the RFC 5322 mailbox format.\r\nRFC 5322 mailbox format examples with `Name` in bold...<list><item><description>\"<b>John Doe</b>\" <john.doe@domainname.com></description></item><item><description>\"<b>Smith, Jane (CAI - Atlanta)</b>\" <jane.smith@domainname.com></description></item></list>\r\nThis value should NOT include the wrapping double quotes. Please omit them as this will be handled automatically.</remarks>",
+            "description": "An optional display name for a party (sender or recipient) tied to the order.\r\n<remarks>\r\nThe display name provides a human-readable label for the address identifier.\r\nExamples with `Name` in bold:<list><item><description><b>John Doe</b></description></item><item><description><b>Smith, Jane (CAI - Atlanta)</b></description></item></list>\r\nThis value should NOT include wrapping double quotes. Please omit them as this will be handled automatically.</remarks>",
             "nullable": true,
-            "example": "\"John Doe\" or \"Smith, Jane (CAI - Atlanta)\""
+            "example": "John Doe"
           }
         },
         "additionalProperties": false
@@ -434,7 +434,7 @@
           },
           "content": {
             "type": "string",
-            "description": "The primary content of the order. Common content field between all order types.\r\n<remarks><list type=\"bullet\"><item><description>`STANDARD` - standard order content</description></item><item><description>`TEXT` - digital order content</description></item></list></remarks>",
+            "description": "The primary content of the order. Common content field between all order types.\r\n<remarks><list type=\"bullet\"><item><description>`STANDARD` - standard order content</description></item><item><description>`DIGITAL` - digital order content</description></item></list></remarks>",
             "nullable": true
           },
           "mediaIds": {
@@ -507,7 +507,7 @@
           "id": {
             "$ref": "#/components/schemas/PlatformId"
           },
-          "boid": {
+          "operationId": {
             "type": "string",
             "description": "Business Operation Identifier - the platform-specific unique instance identifier for the platform (store identifier).",
             "nullable": true,
@@ -537,11 +537,11 @@
             "nullable": true,
             "example": "Jane Smith"
           },
-          "leadId": {
+          "trackingId": {
             "type": "string",
-            "description": "The platform-specific unique identifier for a lead opportunity.",
+            "description": "The platform-specific unique identifier for tracking an order through fulfillment.",
             "nullable": true,
-            "example": "SALES_LEAD_001, REPAIR_ORDER_002"
+            "example": "TRACK_001, REPAIR_ORDER_002"
           }
         },
         "additionalProperties": false,
@@ -549,7 +549,7 @@
       },
       "PlatformId": {
         "enum": [
-          "PRIME_RETAIL",
+          "ORDER_DIRECT",
           "FRESH_GROCERY"
         ],
         "type": "string",

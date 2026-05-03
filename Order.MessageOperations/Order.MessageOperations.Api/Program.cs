@@ -14,7 +14,7 @@ var mongoConnectionString = builder.Configuration.GetConnectionString("MongoDB")
 if (!string.IsNullOrWhiteSpace(mongoConnectionString))
 {
     builder.Services.AddSingleton<IMongoClient>(new MongoClient(mongoConnectionString));
-    builder.Services.AddSingleton<OrderQueryService>();
+    builder.Services.AddSingleton<IOrderQueryService, OrderQueryService>();
 }
 
 builder.Services.Configure<MessageOperationsOptions>(options =>
@@ -41,15 +41,29 @@ builder.Services.Configure<MessageOperationsOptions>(options =>
     }
 });
 
-builder.Services.AddSingleton<MessageStorageService>();
-builder.Services.AddSingleton<QueueReplayService>();
-builder.Services.AddSingleton<S3OperationsService>();
+builder.Services.AddSingleton<IMessageStorageService, MessageStorageService>();
+builder.Services.AddSingleton<IQueueReplayService, QueueReplayService>();
+builder.Services.AddSingleton<IS3OperationsService, S3OperationsService>();
+builder.Services.AddSingleton<ITraceService, TraceService>();
+builder.Services.AddSingleton<ITestDataService, TestDataService>();
 
 var app = builder.Build();
 
 // Enable Swagger for all environments (internal tooling only)
 app.UseSwagger();
 app.UseSwaggerUI();
+
+app.UseExceptionHandler(errorApp =>
+{
+    errorApp.Run(async context =>
+    {
+        context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+        context.Response.ContentType = "application/json";
+
+        var response = new { error = "An unexpected error occurred." };
+        await context.Response.WriteAsJsonAsync(response);
+    });
+});
 
 app.MapControllers();
 app.MapHealthChecks("/health");

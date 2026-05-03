@@ -5,7 +5,7 @@ using Microsoft.Extensions.Options;
 
 namespace Order.MessageOperations.Api.Services;
 
-public class MessageStorageService
+public class MessageStorageService : IMessageStorageService
 {
     private readonly MessageOperationsOptions _config;
     private readonly ILogger<MessageStorageService> _logger;
@@ -22,7 +22,17 @@ public class MessageStorageService
 
     public string BuildBatchPath(string queueType, string batchId)
     {
-        return Path.Combine(_config.MessageStoragePath, queueType.ToLowerInvariant(), batchId);
+        // Sanitize inputs to prevent path traversal attacks.
+        // Path.GetFileName strips directory separators, ".." segments, etc.
+        var safeQueueType = Path.GetFileName(queueType.ToLowerInvariant());
+        var safeBatchId = Path.GetFileName(batchId);
+
+        if (string.IsNullOrWhiteSpace(safeQueueType) || string.IsNullOrWhiteSpace(safeBatchId))
+        {
+            throw new ArgumentException("Invalid queueType or batchId.");
+        }
+
+        return Path.Combine(_config.MessageStoragePath, safeQueueType, safeBatchId);
     }
 
     public async Task<string> SaveBatchAsync(string queueType, List<SavedMessage> messages, string sourceDlq)

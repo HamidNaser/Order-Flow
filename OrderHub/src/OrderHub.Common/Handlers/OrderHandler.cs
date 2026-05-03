@@ -5,6 +5,7 @@ using OrderHub.Common.Models;
 using OrderHub.Common.Models.OrderMappers;
 using OrderHub.Common.Repositories;
 using OrderHub.Common.Services;
+using OrderHub.Common.Telemetry;
 using OrderHub.Contracts.Ingest;
 using OrderHub.Contracts.Utility;
 using Microsoft.Extensions.Options;
@@ -21,8 +22,9 @@ public class OrderHandler(
     IOrderMapper orderMapper,
     IOrderRepository repository,
     ICustomerLockService customerLockService,
+    IOrderMetrics metrics,
     IOptions<MessageHandlerOptions> options
-) : BaseMessageHandler<OrderHandler.OrderPayload>(options)
+) : BaseMessageHandler<OrderHandler.OrderPayload>(metrics, options)
 {
     protected override string MessageType => "Order";
 
@@ -88,7 +90,7 @@ public class OrderHandler(
         return ParsingResult<OrderPayload>.Success(payload);
     }
 
-    protected override async Task<ProcessingResult> ProcessPayload(OrderPayload payload)
+    protected override async Task<ProcessingResult> ProcessPayload(OrderPayload payload, CancellationToken cancellationToken)
     {
         // Handle S3 test event marker (no processing needed)
         // Test events are emitted when S3 bucket notifications are configured and are not business events.
@@ -99,9 +101,19 @@ public class OrderHandler(
 
         var getObjectResponse = await s3Service.GetObjectAsync<OrderRequest>(payload.BucketName, payload.Key);
 
+        if (getObjectResponse.ErrorType == S3ErrorType.NOT_FOUND)
+        {
+            return ProcessingResult.Poison($"S3 object not found: {getObjectResponse.ErrorMessage}");
+        }
+
+        if (getObjectResponse.ErrorType == S3ErrorType.PARSING_ERROR)
+        {
+            return ProcessingResult.Poison($"S3 object parse failed: {getObjectResponse.ErrorMessage}");
+        }
+
         if (getObjectResponse.ErrorType != S3ErrorType.NONE)
         {
-            return ProcessingResult.Poison($"S3 retrieval failed: {getObjectResponse.ErrorMessage}");
+            return ProcessingResult.Retry($"Transient S3 error: {getObjectResponse.ErrorMessage}");
         }
 
         if (getObjectResponse.Content == null)
@@ -129,7 +141,7 @@ public class OrderHandler(
 
         var customerId = getObjectResponse.Content.CustomerId;
 
-        var lease = await TryAcquireCustomerLockAsync(log, customerId);
+        var lease = await TryAcquireCustomerLockAsync(log, customerId, cancellationToken);
         if (!lease.IsAcquired)
         {
             log.Warning("Customer lock not acquired; retrying ingestion insert");
@@ -139,7 +151,7 @@ public class OrderHandler(
 
         try
         {
-            await repository.InsertAsync(channelOrder);
+            await repository.InsertAsync(channelOrder, cancellationToken);
         }
         finally
         {
@@ -149,7 +161,7 @@ public class OrderHandler(
 
             releaseStopwatch.Stop();
 
-            NewRelic.Api.Agent.NewRelic.IncrementCounter($"Custom/{MessageType}/Lock/Released");
+            metrics.IncrementCounter($"Custom/{MessageType}/Lock/Released");
 
             using (LogContext.PushProperty("lockReleasedMs", releaseStopwatch.ElapsedMilliseconds))
             {
@@ -162,10 +174,11 @@ public class OrderHandler(
 
     private async Task<ICustomerLockLease> TryAcquireCustomerLockAsync(
         ILogger log,
-        string customerId)
+        string customerId,
+        CancellationToken cancellationToken)
     {
         var acquireStopwatch = Stopwatch.StartNew();
-        var lease = await customerLockService.AcquireLocksAsync([customerId]);
+        var lease = await customerLockService.AcquireLocksAsync([customerId], cancellationToken);
         acquireStopwatch.Stop();
 
         using (LogContext.PushProperty("customerId", customerId))
@@ -173,16 +186,15 @@ public class OrderHandler(
         {
             if (!lease.IsAcquired)
             {
-                NewRelic.Api.Agent.NewRelic.IncrementCounter($"Custom/{MessageType}/Lock/Failed");
+                metrics.IncrementCounter($"Custom/{MessageType}/Lock/Failed");
                 return lease;
             }
 
-            NewRelic.Api.Agent.NewRelic.IncrementCounter($"Custom/{MessageType}/Lock/Acquired");
+            metrics.IncrementCounter($"Custom/{MessageType}/Lock/Acquired");
 
             log.Debug("Customer lock acquired for ingestion");
 
-            var agent = NewRelic.Api.Agent.NewRelic.GetAgent();
-            agent.CurrentTransaction.AddCustomAttribute("Custom/LockAcquisitionTimeMs", acquireStopwatch.ElapsedMilliseconds);
+            metrics.AddCustomAttribute("Custom/LockAcquisitionTimeMs", acquireStopwatch.ElapsedMilliseconds);
 
             return lease;
         }

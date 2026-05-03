@@ -8,6 +8,8 @@ Communication — Distributed Order Processing Platform
 
 Communication is a multi-solution .NET 8 platform that processes orders across two service boundaries. OrderGateway accepts inbound queue events, validates and enriches them through a step-based processing pipeline, then forwards ingest requests to OrderHub. OrderHub APIs persist order payloads to S3, trigger queue notifications, and workers process those notifications into MongoDB with duplicate protection, distributed locking, and correlation tracking.
 
+The platform also includes an **MCP (Model Context Protocol) server** that enables AI assistants (VS Code Copilot Chat, Claude Desktop) to directly operate the entire pipeline — sending test orders, tracing them through every hop, inspecting queues and S3, querying MongoDB, and replaying dead-letter messages — all through natural language conversation.
+
 The implementation focuses on production-grade operational discipline: event-driven service architecture, OAuth-secured service-to-service communication, config-driven environment switching (LocalStack/AWS), resilient queue processing with circuit breakers and retry policies, Aspire orchestration, and layered test coverage across unit and integration boundaries.
 
 ## Skills Demonstrated
@@ -20,7 +22,7 @@ The implementation focuses on production-grade operational discipline: event-dri
 - Aspire AppHost orchestration for local multi-service development
 - Shared library design for queue pump, circuit breaker, and distributed locking primitives
 - Integration testing strategy using LocalStack, in-memory fakes, and environment-specific configuration
-- MCP tooling server for AI-assisted queue inspection, DLQ replay, and S3 operations
+- **MCP server with 32 tools, 6 prompts, and 3 resources** enabling AI agents to test, trace, and operate the full order pipeline through natural language
 
 ## Architecture
 
@@ -172,8 +174,61 @@ graph TD
 Current validation:
 - OrderGateway unit tests: `112` pass
 - OrderHub unit tests: `94` pass
+- MessageOperations unit tests: `107` pass
 - Integration tests: all pass
-- Total: `206+` test cases across both solutions
+- Total: `313+` test cases across all solutions
+
+## MCP Agent — AI-Assisted Pipeline Testing
+
+The platform includes a **Model Context Protocol (MCP)** server that gives AI assistants (VS Code Copilot Chat, Claude Desktop) the ability to directly operate the order processing pipeline through natural language conversation.
+
+Instead of manually running scripts, crafting `curl` commands, and checking queues by hand, you describe what you want and the AI agent executes the steps, reporting results as it goes.
+
+```mermaid
+graph TD
+    subgraph AGENT["AI Agent (VS Code / Claude Desktop)"]
+        COPILOT["AI Assistant"]
+        PROMPTS["6 Scenario Prompts"]
+        RESOURCES["3 Auto-Loaded Resources"]
+    end
+
+    subgraph MCP["MCP Server (.NET 8 stdio)"]
+        TOOLS["32 MCP Tools"]
+        CLIENT["Typed HTTP Client"]
+    end
+
+    subgraph API["REST API (localhost:5100)"]
+        CTRL["8 Controllers / 5 Services"]
+    end
+
+    subgraph INFRA["Infrastructure"]
+        LS["LocalStack<br/>SQS + S3"]
+        MONGO["MongoDB"]
+    end
+
+    COPILOT --> PROMPTS
+    COPILOT --> RESOURCES
+    COPILOT -->|"MCP protocol"| TOOLS
+    TOOLS --> CLIENT
+    CLIENT -->|"HTTP"| CTRL
+    CTRL --> LS
+    CTRL --> MONGO
+
+    style COPILOT fill:#fff9c4
+    style PROMPTS fill:#f3e5f5
+    style RESOURCES fill:#e0f7fa
+    style TOOLS fill:#e1f5ff
+    style CLIENT fill:#e1f5ff
+    style CTRL fill:#fff3e0
+    style LS fill:#ffebee
+    style MONGO fill:#ffebee
+```
+
+| Capability | Count | Examples |
+|---|---|---|
+| **Tools** | 32 | Queue inspection, S3 operations, order queries, DLQ replay, test data generation, end-to-end tracing |
+| **Prompts** | 6 | `setup-localstack`, `build-and-run`, `run-standard-orders`, `run-express-orders`, `end-to-end-trace`, `tear-down` |
+| **Resources** | 3 | System topology, live queue health, recent orders |
 
 ## Endpoint Snapshot
 
@@ -182,20 +237,28 @@ Current validation:
   - `POST /api/v{version}/event-handler/order-status`
   - `GET|POST|DELETE /api/v{version}/redis`
 - **OrderHub IngestStandard API**
-  - `POST /api/order/text`
-  - `POST /api/order/shipment`
+  - `POST /api/order/digital`
+  - `POST /api/order/standard`
 - **OrderHub IngestExpress API**
-  - `POST /api/order/text`
-  - `POST /api/order/shipment`
+  - `POST /api/order/digital`
+  - `POST /api/order/standard`
+- **MessageOperations API**
+  - `GET /api/v1/queues/*` — Queue inspection, send, purge
+  - `GET /api/v1/s3/*` — S3 bucket/object operations
+  - `GET /api/v1/orders/*` — MongoDB order queries
+  - `POST /api/v1/trace/*` — End-to-end tracing and polling
+  - `POST /api/v1/test-data/*` — Test order generation
+  - `GET /api/v1/health/*` — Infrastructure health checks
 
-## Skills (Top 5)
+## Skills (Top 6)
 
 1. Event-driven distributed service architecture (.NET 8 + SQS + S3 + MongoDB)
 2. Step-based processing pipeline with pluggable stages and feature-flag gating
 3. OAuth-secured service-to-service communication with config-driven environment switching
-4. Integration testing with LocalStack, Aspire orchestration, and resilient queue processing
-5. Operational observability (correlation IDs, structured logging, health checks, NewRelic/Splunk/OpenTelemetry)
+4. MCP server enabling AI agents to operate the pipeline through natural language
+5. Integration testing with LocalStack, Aspire orchestration, and resilient queue processing
+6. Operational observability (correlation IDs, structured logging, health checks, NewRelic/Splunk/OpenTelemetry)
 
-## Optional One-Line Executive Summary
+## One-Line Summary
 
-Designed and evolved a production-grade distributed order processing platform with event-driven queue ingestion, step-based pipeline orchestration, OAuth-secured cross-service routing, and integration-first validation workflows across LocalStack and AWS environments.
+Designed and evolved a production-grade distributed order processing platform with event-driven queue ingestion, step-based pipeline orchestration, OAuth-secured cross-service routing, and an MCP server that enables AI agents to test, trace, and operate the entire pipeline through natural language.

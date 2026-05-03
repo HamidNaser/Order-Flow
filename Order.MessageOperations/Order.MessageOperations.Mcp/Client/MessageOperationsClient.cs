@@ -73,6 +73,33 @@ public class MessageOperationsClient
         return await GetAsync<List<PeekedMessageDto>>($"/api/v1/queues/{Uri.EscapeDataString(queueName)}/messages?count={count}&target={Uri.EscapeDataString(target)}", ct) ?? [];
     }
 
+    /// <summary>
+    /// Send a message to a LocalStack queue.
+    /// </summary>
+    public async Task<SendMessageResultDto?> SendMessageAsync(
+        string queueName, string body, Dictionary<string, string>? messageAttributes = null,
+        string? messageGroupId = null, CancellationToken ct = default)
+    {
+        var request = new SendMessageRequestDto(body, messageAttributes, messageGroupId);
+        return await PostAsync<SendMessageResultDto>($"/api/v1/queues/{Uri.EscapeDataString(queueName)}/send", request, ct);
+    }
+
+    /// <summary>
+    /// Purge all messages from a LocalStack queue.
+    /// </summary>
+    public async Task<PurgeQueueResultDto?> PurgeQueueAsync(string queueName, CancellationToken ct = default)
+    {
+        return await PostAsync<PurgeQueueResultDto>($"/api/v1/queues/{Uri.EscapeDataString(queueName)}/purge", new { }, ct);
+    }
+
+    /// <summary>
+    /// Purge all configured LocalStack queues (main + DLQ).
+    /// </summary>
+    public async Task<PurgeAllQueuesResultDto?> PurgeAllQueuesAsync(CancellationToken ct = default)
+    {
+        return await PostAsync<PurgeAllQueuesResultDto>("/api/v1/queues/purge-all", new { }, ct);
+    }
+
     #endregion
 
     #region Batch Operations
@@ -178,6 +205,71 @@ public class MessageOperationsClient
         return await PostAsync<S3SyncResultDto>("/api/v1/s3/sync-from-batch", request, ct);
     }
 
+    /// <summary>
+    /// Upload an object to a LocalStack S3 bucket.
+    /// </summary>
+    public async Task<UploadS3ObjectResultDto?> UploadS3ObjectAsync(
+        string bucketName, string key, string content, string contentType = "application/json", CancellationToken ct = default)
+    {
+        var request = new UploadS3ObjectRequestDto(key, content, contentType);
+        return await PostAsync<UploadS3ObjectResultDto>($"/api/v1/s3/buckets/{Uri.EscapeDataString(bucketName)}/upload", request, ct);
+    }
+
+    #endregion
+
+    #region Health Operations
+
+    /// <summary>
+    /// Check LocalStack health (SQS + S3 connectivity).
+    /// </summary>
+    public async Task<LocalStackHealthDto?> CheckLocalStackHealthAsync(CancellationToken ct = default)
+    {
+        return await GetAsync<LocalStackHealthDto>("/api/v1/health/localstack", ct);
+    }
+
+    #endregion
+
+    #region Trace Operations
+
+    /// <summary>
+    /// Poll LocalStack S3 until an object matching the key prefix appears, or timeout.
+    /// </summary>
+    public async Task<TraceS3ResultDto?> WaitForS3ObjectAsync(
+        string bucketName, string keyPrefix, int timeoutSeconds = 30, int pollIntervalMs = 500, CancellationToken ct = default)
+    {
+        var request = new WaitForS3ObjectRequestDto(bucketName, keyPrefix, timeoutSeconds, pollIntervalMs);
+        return await PostAsync<TraceS3ResultDto>("/api/v1/trace/s3", request, ct);
+    }
+
+    /// <summary>
+    /// Poll a LocalStack SQS queue until a matching message appears, or timeout.
+    /// </summary>
+    public async Task<TraceQueueResultDto?> WaitForQueueMessageAsync(
+        string queueName, string? bodyContains = null, int timeoutSeconds = 30, int pollIntervalMs = 500, CancellationToken ct = default)
+    {
+        var request = new WaitForQueueMessageRequestDto(queueName, bodyContains, timeoutSeconds, pollIntervalMs);
+        return await PostAsync<TraceQueueResultDto>("/api/v1/trace/queue", request, ct);
+    }
+
+    /// <summary>
+    /// Poll MongoDB until a matching document appears for the given store, or timeout.
+    /// </summary>
+    public async Task<TraceMongoResultDto?> WaitForMongoDocumentAsync(
+        string storeId, string? providerOrderId = null, string? customerId = null,
+        int timeoutSeconds = 30, int pollIntervalMs = 500, CancellationToken ct = default)
+    {
+        var request = new WaitForMongoDocumentRequestDto(storeId, providerOrderId, customerId, timeoutSeconds, pollIntervalMs);
+        return await PostAsync<TraceMongoResultDto>("/api/v1/trace/mongo", request, ct);
+    }
+
+    /// <summary>
+    /// Get the approximate message count for all configured LocalStack queues.
+    /// </summary>
+    public async Task<AllQueueDepthsResultDto?> GetAllQueueDepthsAsync(CancellationToken ct = default)
+    {
+        return await GetAsync<AllQueueDepthsResultDto>("/api/v1/trace/queue-depths", ct);
+    }
+
     #endregion
 
     #region Order Operations
@@ -249,6 +341,22 @@ public class MessageOperationsClient
     public async Task<object?> GetRecentOrdersAsync(string storeId, int limit = 20, CancellationToken ct = default)
     {
         return await GetAsync<object>($"/api/v1/orders/{Uri.EscapeDataString(storeId)}/recent?limit={limit}", ct);
+    }
+
+    #endregion
+
+    #region Test Data Operations
+
+    /// <summary>
+    /// Generate test order payloads for injection into the processing pipeline.
+    /// </summary>
+    public async Task<GenerateOrdersResultDto?> GenerateTestOrdersAsync(
+        string priority = "standard", string channelType = "STANDARD", int count = 1,
+        string? storeId = null, string format = "gateway", CancellationToken ct = default)
+    {
+        var url = $"/api/v1/test-data/generate-orders?priority={Uri.EscapeDataString(priority)}&channelType={Uri.EscapeDataString(channelType)}&count={count}&format={Uri.EscapeDataString(format)}";
+        if (!string.IsNullOrEmpty(storeId)) url += $"&storeId={Uri.EscapeDataString(storeId)}";
+        return await PostAsync<GenerateOrdersResultDto>(url, new { }, ct);
     }
 
     #endregion
@@ -432,6 +540,145 @@ public record S3SyncResultDto(
     int Synced,
     int TotalMessages,
     bool UseAwsFallback
+);
+
+// ── Queue Write DTOs ─────────────────────────────────────────────
+public record SendMessageRequestDto(
+    string Body,
+    Dictionary<string, string>? MessageAttributes = null,
+    string? MessageGroupId = null
+);
+
+public record SendMessageResultDto(
+    string QueueName,
+    string MessageId
+);
+
+public record PurgeQueueResultDto(
+    string QueueName,
+    bool Success
+);
+
+public record PurgeAllQueuesResultDto(
+    int Purged,
+    int Failed,
+    Dictionary<string, bool> Results
+);
+
+// ── S3 Write DTOs ────────────────────────────────────────────────
+public record UploadS3ObjectRequestDto(
+    string Key,
+    string Content,
+    string ContentType = "application/json"
+);
+
+public record UploadS3ObjectResultDto(
+    string BucketName,
+    string Key,
+    string ETag
+);
+
+// ── Health DTOs ──────────────────────────────────────────────────
+public record LocalStackHealthDto(
+    bool Healthy,
+    ServiceStatusDto Sqs,
+    ServiceStatusDto S3,
+    string LocalStackEndpoint
+);
+
+public record ServiceStatusDto(
+    bool Healthy,
+    string? Detail
+);
+
+// ── Trace DTOs ───────────────────────────────────────────────────
+public record WaitForS3ObjectRequestDto(
+    string BucketName,
+    string KeyPrefix,
+    int TimeoutSeconds = 30,
+    int PollIntervalMs = 500
+);
+
+public record WaitForQueueMessageRequestDto(
+    string QueueName,
+    string? BodyContains = null,
+    int TimeoutSeconds = 30,
+    int PollIntervalMs = 500
+);
+
+public record WaitForMongoDocumentRequestDto(
+    string StoreId,
+    string? ProviderOrderId = null,
+    string? CustomerId = null,
+    int TimeoutSeconds = 30,
+    int PollIntervalMs = 500
+);
+
+public record TraceS3ResultDto(
+    bool Found,
+    string BucketName,
+    string KeyPrefix,
+    int ElapsedMs,
+    int TimeoutMs,
+    string? MatchedKey,
+    long? Size,
+    string? Detail
+);
+
+public record TraceQueueResultDto(
+    bool Found,
+    string QueueName,
+    string? BodyContains,
+    int ElapsedMs,
+    int TimeoutMs,
+    string? MessageId,
+    string? BodyPreview,
+    string? Detail
+);
+
+public record TraceMongoResultDto(
+    bool Found,
+    string StoreId,
+    string? ProviderOrderId,
+    string? CustomerId,
+    int ElapsedMs,
+    int TimeoutMs,
+    string? MatchedOrderId,
+    string? Detail
+);
+
+public record QueueDepthEntryDto(
+    string QueueKey,
+    string QueueName,
+    int ApproximateMessageCount,
+    int ApproximateNotVisible
+);
+
+public record AllQueueDepthsResultDto(
+    List<QueueDepthEntryDto> Queues,
+    int TotalMessages
+);
+
+// ── Test Data DTOs ───────────────────────────────────────────────
+public record GeneratedOrderDto(
+    int Index,
+    string OrderReferenceId,
+    string StoreId,
+    string Priority,
+    string ChannelType,
+    string Format,
+    string TargetQueue,
+    string Body,
+    string Description
+);
+
+public record GenerateOrdersResultDto(
+    int Count,
+    string Priority,
+    string ChannelType,
+    string Format,
+    string TargetQueue,
+    List<GeneratedOrderDto> Orders
 );
 
 #endregion

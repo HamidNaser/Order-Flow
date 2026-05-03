@@ -11,6 +11,7 @@ It is designed as a production-grade layered architecture with OAuth-secured ser
 - **OAuth-secured cross-service routing** through client-credentials flow (Keycloak local / AWS production)
 - **Dual-path persistence** through S3 storage + queue notification + MongoDB worker processing
 - **Shared library primitives** through `Order.MessagePump` for queue pump, retry, and distributed locking
+- **AI-assisted pipeline testing** through an MCP server with 32 tools, 6 prompts, and 3 resources that lets AI agents operate the entire pipeline via natural language
 
 The result is a platform where OrderGateway validates, enriches, and routes events to OrderHub, which persists and processes them with duplicate protection and correlation tracking.
 
@@ -127,8 +128,8 @@ graph TD
 - `OrderCommon/src/Order.MessagePump/`: generic queue worker pipeline with circuit breaker
 - `OrderCommon/src/Order.MessagePump.Aws/`: AWS SQS adapter
 - `OrderCommon/src/Order.MessagePump.Redis/`: Redis distributed locking
-- `Order.MessageOperations/Order.MessageOperations.Api/`: diagnostic REST API for queue/S3 operations
-- `Order.MessageOperations/Order.MessageOperations.Mcp/`: MCP server for AI-assisted tooling
+- `Order.MessageOperations/Order.MessageOperations.Api/`: diagnostic REST API (8 controllers, 5 services) for queue/S3/trace/test-data operations
+- `Order.MessageOperations/Order.MessageOperations.Mcp/`: MCP server (32 tools, 6 prompts, 3 resources) for AI-assisted pipeline testing and tracing
 
 ---
 
@@ -145,7 +146,7 @@ Current solution coverage includes:
 - Distributed locking via Redis for duplicate protection during ingestion
 - Aspire AppHost orchestration for local multi-service development
 - LocalStack infrastructure scripts (SQS, S3, MongoDB, Redis, Keycloak)
-- Order.MessageOperations: diagnostic API + MCP server for queue inspection, DLQ replay, and S3 operations
+- Order.MessageOperations: diagnostic API + MCP server with 32 tools, 6 prompts, and 3 resources for AI-driven pipeline testing, order tracing, queue inspection, DLQ replay, test data generation, and S3 operations
 - Unit and integration tests via xUnit + NSubstitute
 
 ---
@@ -206,6 +207,12 @@ pwsh --version
 cd OrderHub/ifx-aws-cli/local
 ./stop.ps1
 ./clean.ps1 -Force
+
+cd ../../OrderGateway/ifx-aws-cli/local
+./stop.ps1
+./clean.ps1 -Force
+
+cd OrderHub/ifx-aws-cli/local
 ./start.ps1
 ```
 
@@ -224,10 +231,12 @@ Expected services:
 Then start OrderGateway infrastructure:
 
 ```powershell
-cd ../../OrderGateway/ifx-aws-cli/local
-./stop.ps1
-./clean.ps1 -Force
 ./start.ps1
+```
+Wait for **"All services are running!"** then verify:
+
+```powershell
+./status.ps1
 ```
 
 ### 3) Build and Run
@@ -458,6 +467,440 @@ For local development, the token issuer is Keycloak realm `ordergateway-local`:
 - Structured logging with Serilog + correlation IDs + NewRelic/Splunk/OpenTelemetry
 - Config-driven environment switching (appsettings.localstack.json / appsettings.aws.json)
 - Test layering (unit + integration) with LocalStack, NSubstitute mocks, and explicit behavior verification
+
+---
+
+## MCP Agent — AI-Assisted Order Pipeline Testing
+
+The platform includes a **Model Context Protocol (MCP)** server that gives AI assistants (VS Code Copilot Chat, Claude Desktop) the ability to directly operate the order processing pipeline — sending messages, tracing orders, querying databases, and generating test data through natural language conversation.
+
+Instead of manually running scripts, crafting `curl` commands, and checking queues by hand, you describe what you want and the AI agent executes every step, reporting results as it goes.
+
+### What This Enables
+
+> **You say**: *"Run 5 standard orders through the pipeline and show me what happens at each step"*
+>
+> **The agent**: generates 5 realistic order payloads → sends them to the gateway queue → monitors queue depths → traces each order through S3 and downstream queues → reports a summary table with order IDs, timings, and status at each hop.
+
+### Architecture — The Three Layers
+
+The MCP agent operates through three distinct layers, each with a clear responsibility:
+
+```mermaid
+graph TD
+    subgraph AGENT["Layer 1 — AI Agent (VS Code / Claude Desktop)"]
+        COPILOT["AI Assistant<br/>(Copilot Chat / Claude)"]
+        PROMPTS["MCP Prompts<br/>6 scenario templates"]
+        RESOURCES["MCP Resources<br/>3 auto-loaded contexts"]
+    end
+
+    subgraph MCP["Layer 2 — MCP Server (.NET 8 stdio process)"]
+        direction TB
+        TOOLS["32 MCP Tools"]
+        CLIENT["MessageOperationsClient<br/>(typed HTTP client)"]
+
+        subgraph TOOL_CLASSES["Tool Classes"]
+            direction LR
+            QT["QueueTools<br/>7 tools"]
+            BT["BatchTools<br/>3 tools"]
+            RT["ReplayTools<br/>3 tools"]
+            S3T["S3Tools<br/>6 tools"]
+            OT["OrderTools<br/>6 tools"]
+            HT["HealthTools<br/>1 tool"]
+            TT["TraceTools<br/>4 tools"]
+            TDT["TestDataTools<br/>2 tools"]
+        end
+    end
+
+    subgraph API["Layer 3 — REST API (localhost:5100)"]
+        direction TB
+        CONTROLLERS["8 Controllers"]
+        SERVICES["5 Services"]
+
+        subgraph CTRL_LIST["Controllers"]
+            direction LR
+            QC["QueuesController"]
+            BC["BatchesController"]
+            RC["ReplayController"]
+            S3C["S3Controller"]
+            OC["OrdersController"]
+            HC["HealthController"]
+            TC["TraceController"]
+            TDC["TestDataController"]
+        end
+
+        subgraph SVC_LIST["Services"]
+            direction LR
+            QRS["QueueReplayService"]
+            MSS["MessageStorageService"]
+            S3S["S3OperationsService"]
+            TS["TraceService"]
+            TDS["TestDataService"]
+        end
+    end
+
+    subgraph INFRA["Infrastructure"]
+        direction LR
+        LS["LocalStack<br/>SQS + S3<br/>localhost:4566"]
+        MONGO["MongoDB<br/>localhost:27018"]
+        AWS["AWS (QA)<br/>SQS + S3<br/>(optional)"]
+    end
+
+    COPILOT -->|"selects prompt"| PROMPTS
+    COPILOT -->|"reads context"| RESOURCES
+    COPILOT -->|"MCP protocol<br/>(stdio)"| TOOLS
+    TOOLS --> CLIENT
+    CLIENT -->|"HTTP<br/>localhost:5100"| CONTROLLERS
+    CONTROLLERS --> SERVICES
+    SERVICES --> LS
+    SERVICES --> MONGO
+    SERVICES -.->|"optional"| AWS
+
+    style COPILOT fill:#fff9c4
+    style PROMPTS fill:#f3e5f5
+    style RESOURCES fill:#e0f7fa
+    style TOOLS fill:#e1f5ff
+    style CLIENT fill:#e1f5ff
+    style QT fill:#e8f5e9
+    style BT fill:#e8f5e9
+    style RT fill:#e8f5e9
+    style S3T fill:#e8f5e9
+    style OT fill:#e8f5e9
+    style HT fill:#e8f5e9
+    style TT fill:#e8f5e9
+    style TDT fill:#e8f5e9
+    style CONTROLLERS fill:#fff3e0
+    style SERVICES fill:#fff3e0
+    style LS fill:#ffebee
+    style MONGO fill:#ffebee
+    style AWS fill:#ffebee
+```
+
+#### Layer 1 — AI Agent (the brain)
+
+The AI assistant in VS Code Copilot Chat or Claude Desktop. It reads **MCP Prompts** (scenario templates that encode multi-step workflows) and **MCP Resources** (auto-loaded context like system topology, queue health, and recent orders) to understand the current system state. It then decides which **MCP Tools** to call and in what order. The agent handles all reasoning, sequencing, error recovery, and user reporting.
+
+#### Layer 2 — MCP Server (the hands)
+
+A .NET 8 console application (`Order.MessageOperations.Mcp`) that communicates with the AI over **stdio** using the Model Context Protocol. It exposes **32 tools**, **6 prompts**, and **3 resources** that the AI can discover and call. Prompt templates are stored as external `.md` files in `Prompts/Templates/` so they can be edited without recompiling. Each tool is a thin adapter — it validates inputs and forwards to the REST API via a typed HTTP client (`MessageOperationsClient`).
+
+#### Layer 3 — REST API (the muscles)
+
+A .NET 8 Web API (`Order.MessageOperations.Api`) running on `localhost:5100` that does the actual work — talking to LocalStack SQS queues, S3 buckets, and MongoDB. All business logic lives here: queue operations, S3 management, order queries, trace polling, and test data generation. The API works independently — you can call it with `curl` or a browser without the MCP layer.
+
+### How Data Flows
+
+```
+You type: "Send 3 express orders and trace them"
+    │
+    ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  AI Agent reads the "run-express-orders" prompt template        │
+│  which tells it the exact sequence of tools to call             │
+└─────────────────────────────────────────────────────────────────┘
+    │
+    ▼ Step 1: GenerateAndSendOrders(priority=express, count=3)
+┌─────────────────────────────────────────────────────────────────┐
+│  MCP Server → HTTP POST /api/v1/test-data/generate-orders      │
+│  TestDataService builds 3 base64-encoded OrderEvent payloads   │
+│  MCP Server → HTTP POST /api/v1/queues/{name}/send (×3)        │
+│  Messages land on order-gateway-incoming queue                  │
+└─────────────────────────────────────────────────────────────────┘
+    │
+    ▼ Step 2: GetAllQueueDepths()
+┌─────────────────────────────────────────────────────────────────┐
+│  MCP Server → HTTP GET /api/v1/trace/queue-depth-snapshot      │
+│  Returns message counts for all 6 queue pairs                  │
+│  Agent reports: "3 messages in gateway queue"                   │
+└─────────────────────────────────────────────────────────────────┘
+    │
+    ▼ Step 3: WaitForQueueMessage(queue=order-hub-express-order)
+┌─────────────────────────────────────────────────────────────────┐
+│  MCP Server → HTTP POST /api/v1/trace/wait-for-queue-message   │
+│  TraceService polls queue every 2s until messages appear        │
+│  Agent reports: "Orders arrived in express queue after 4.2s"    │
+└─────────────────────────────────────────────────────────────────┘
+    │
+    ▼ Agent compiles summary table with per-order results
+```
+
+### Complete Tool Inventory (32 Tools)
+
+| Tool Class | Tool | Type | Description |
+|---|---|---|---|
+| **QueueTools** | `ListConfiguredQueues` | Read | Show all configured queue names and their LocalStack mappings |
+| | `ListLocalStackQueues` | Read | List all queues that exist in LocalStack |
+| | `GetQueueStatus` | Read | Get message count + in-flight count for a specific queue |
+| | `PeekQueueMessages` | Read | Read messages from a queue without consuming them |
+| | `SendTestMessage` | Write | Send a JSON message body to any LocalStack queue |
+| | `PurgeQueue` | Write | Delete all messages from a specific queue |
+| | `PurgeAllQueues` | Write | Purge all configured queues (test cleanup) |
+| **BatchTools** | `ListBatches` | Read | List all saved message batches on disk |
+| | `GetBatchDetails` | Read | Get metadata for a specific saved batch |
+| | `GetBatchMessages` | Read | Read messages from a saved batch |
+| **ReplayTools** | `DownloadMessages` | Read/Write | Download messages from an AWS DLQ to a local batch |
+| | `ReplayFromBatch` | Write | Replay a saved batch to a LocalStack queue |
+| | `DownloadAndReplay` | Read/Write | Download from AWS DLQ and immediately replay to LocalStack |
+| **S3Tools** | `ListS3Buckets` | Read | List all S3 buckets (LocalStack or AWS) |
+| | `ListS3Objects` | Read | List objects in an S3 bucket with optional prefix filter |
+| | `GetS3ObjectMetadata` | Read | Get metadata (size, content-type, last-modified) for an S3 object |
+| | `GetS3ObjectContent` | Read | Download and return the content of an S3 object |
+| | `SyncS3FromBatch` | Write | Sync S3 objects referenced by a saved batch |
+| | `UploadS3Object` | Write | Upload content to an S3 bucket |
+| **OrderTools** | `GetOrder` | Read | Get a specific order by store ID and order ID from MongoDB |
+| | `GetCustomerOrders` | Read | Get all orders for a customer in a store |
+| | `SearchOrders` | Read | Search orders by keyword across store |
+| | `GetOrderSummary` | Read | Get order count and date range summary for a store |
+| | `FindByProvider` | Read | Find an order by merchant/provider order ID |
+| | `GetRecentOrders` | Read | Get the most recent orders for a store |
+| **HealthTools** | `CheckLocalStackHealth` | Read | Verify SQS + S3 connectivity and return service status |
+| **TraceTools** | `WaitForS3Object` | Read (poll) | Poll S3 until an object matching a key prefix appears |
+| | `WaitForQueueMessage` | Read (poll) | Poll a queue until a message matching a filter appears |
+| | `WaitForMongoDocument` | Read (poll) | Poll MongoDB until an order matching criteria appears |
+| | `GetAllQueueDepths` | Read | Snapshot of message counts for all configured queues |
+| **TestDataTools** | `GenerateTestOrders` | Read | Generate realistic test order payloads (returns JSON, doesn't send) |
+| | `GenerateAndSendOrders` | Write | Generate orders AND send them to the target queue in one call |
+
+### MCP Prompts (6 Scenario Templates)
+
+Prompts are pre-built workflow templates stored as external `.md` files in `Prompts/Templates/`. They tell the AI agent exactly which tools to call and in what order, and can be edited without recompiling.
+
+| Prompt | Parameters | What It Does |
+|---|---|---|
+| `setup-localstack` | — | Full infrastructure setup: verify prerequisites, stop/clean both OrderHub and OrderGateway, start containers (LocalStack, MongoDB, Redis, Keycloak), verify queues and S3 |
+| `build-and-run` | — | Restore/build both solutions, launch both Aspire AppHosts with `localstack` environment, confirm end-to-end with Keycloak OIDC check and a test order |
+| `run-standard-orders` | `count` (default: 5), `storeId` (optional) | Generate N standard-priority orders → send to gateway queue → check queue depths → trace to `order-hub-standard-order` → summarize results |
+| `run-express-orders` | `count` (default: 5), `storeId` (optional) | Same flow but traces express-priority orders through `order-hub-express-order` |
+| `end-to-end-trace` | `priority` (default: standard), `storeId` (optional) | Single order traced through all 4 hops: gateway queue → downstream queue → S3 → MongoDB with timing at each stage |
+| `tear-down` | — | Kill all running .NET applications (AppHosts, APIs, Workers), then stop and clean both OrderGateway and OrderHub infrastructure containers |
+
+#### Prompt Template Files
+
+Prompt templates live in `Order.MessageOperations.Mcp/Prompts/Templates/` as `.md` files:
+
+| File | Prompt |
+|---|---|
+| `setup-localstack.md` | `setup-localstack` |
+| `build-and-run.md` | `build-and-run` |
+| `run-standard-orders.md` | `run-standard-orders` |
+| `run-express-orders.md` | `run-express-orders` |
+| `end-to-end-trace.md` | `end-to-end-trace` |
+| `tear-down.md` | `tear-down` |
+
+Templates use `{{placeholder}}` syntax for dynamic values (e.g., `{{count}}`, `{{storeNote}}`, `{{priority}}`). The C# code in `OrderPrompts.cs` replaces these at runtime.
+
+To add a new prompt:
+1. Create a new `.md` file in `Prompts/Templates/`
+2. Add a method to `OrderPrompts.cs` with `[McpServerPrompt]` and `[Description]` attributes
+3. Call `LoadTemplate("your-file.md")` — or `LoadTemplate("your-file.md", replacements)` if the template has placeholders
+4. Rebuild — the `.csproj` copies `*.md` files to the output directory automatically
+
+### MCP Resources (3 Auto-Loaded Contexts)
+
+Resources are read-only data endpoints that the AI agent can load automatically to understand the current system state before taking action. Unlike tools (which the agent calls on demand), resources provide ambient context.
+
+| Resource URI | Name | What It Provides |
+|---|---|---|
+| `order-ops://topology` | `system-topology` | Complete system map showing all services, their ports, queue names, S3 buckets, and how they connect — gives the agent architectural awareness without asking |
+| `order-ops://queue-health` | `queue-health` | Live message counts for all 6 queues (including DLQs) — the agent sees queue state before deciding what to do |
+| `order-ops://recent-orders` | `recent-orders` | Last 10 orders from MongoDB with timestamps and priorities — provides immediate data context |
+
+Resources are defined in `OrderResources.cs` using `[McpServerResource]` attributes and registered via `.WithResources<OrderResources>()` in `Program.cs`.
+
+### Setup Guide
+
+#### Prerequisites
+
+- .NET SDK 8.0+
+- Docker Desktop (running)
+- VS Code with GitHub Copilot Chat **or** Claude Desktop
+- LocalStack infrastructure started — either manually (see [Quick Start](#quick-start)) or by invoking the `setup-localstack` prompt
+
+#### Step 1 — Build the MCP Projects
+
+```powershell
+cd Order.MessageOperations
+dotnet build Order.MessageOperations.slnx
+```
+
+This builds both:
+- `Order.MessageOperations.Api` — the REST API (runs on `localhost:5100`)
+- `Order.MessageOperations.Mcp` — the MCP server (stdio process)
+
+#### Step 2 — Start the API
+
+```powershell
+dotnet run --project Order.MessageOperations.Api
+```
+
+The API starts on `http://localhost:5100`. Verify it's running:
+
+```powershell
+curl http://localhost:5100/swagger
+```
+
+#### Step 3 — Configure the MCP Server in Your AI Client
+
+**For VS Code Copilot Chat** — add to `.vscode/mcp.json` in your workspace:
+
+```json
+{
+  "servers": {
+    "order-message-ops": {
+      "type": "stdio",
+      "command": "dotnet",
+      "args": [
+        "run",
+        "--project",
+        "Order.MessageOperations/Order.MessageOperations.Mcp"
+      ],
+      "env": {
+        "MESSAGEOPS_API_URL": "http://localhost:5100"
+      }
+    }
+  }
+}
+```
+
+**For Claude Desktop** — add to `claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "order-message-ops": {
+      "command": "dotnet",
+      "args": [
+        "run",
+        "--project",
+        "C:/Work/mine/Communication/Order.MessageOperations/Order.MessageOperations.Mcp"
+      ],
+      "env": {
+        "MESSAGEOPS_API_URL": "http://localhost:5100"
+      }
+    }
+  }
+}
+```
+
+> **Environment variable**: `MESSAGEOPS_API_URL` controls which API the MCP server calls. Defaults to `http://localhost:5100` if not set.
+
+#### Step 4 — Verify the Connection
+
+Open Copilot Chat (or Claude Desktop) and ask:
+
+> *"Check LocalStack health"*
+
+The agent should call `CheckLocalStackHealth` and report SQS/S3 status. If it shows tools available, your MCP connection is working.
+
+### Full Workflow Example — Running 5 Standard Orders
+
+This is the complete workflow when you say *"Run 5 standard orders and show me each step"*:
+
+**1. Preflight — Check infrastructure is healthy**
+```
+Agent calls: CheckLocalStackHealth
+→ SQS: healthy (6 queues found)
+→ S3: healthy (1 bucket found)
+```
+
+**2. Generate and send — Create realistic orders and enqueue them**
+```
+Agent calls: GenerateAndSendOrders(priority=standard, count=5, format=gateway)
+→ 5 orders generated with base64-encoded OrderEvent payloads
+→ Each sent to order-gateway-incoming queue
+→ Classification: "batch" (routes to standard path)
+```
+
+**3. Verify queue depths — Confirm messages arrived**
+```
+Agent calls: GetAllQueueDepths
+→ order-gateway-incoming: 5 messages
+→ order-hub-standard-order: 0 messages (not processed yet)
+→ order-hub-express-order: 0 messages
+```
+
+**4. Trace downstream — Wait for orders to flow through the pipeline**
+```
+Agent calls: WaitForQueueMessage(queue=order-hub-standard-order, timeout=30)
+→ Polls every 2 seconds
+→ Messages appear after ~4s (Gateway Worker processed them)
+→ Reports: "5 messages arrived in order-hub-standard-order"
+```
+
+**5. Verify S3 persistence — Confirm orders were stored**
+```
+Agent calls: ListS3Objects(bucket=localstack-us-east-1-orders, prefix=STANDARD/)
+→ 5 objects found matching the order IDs
+```
+
+**6. Summary — Agent compiles a results table**
+```
+| # | Order ID                             | Store | Status           | Gateway → Hub |
+|---|--------------------------------------|-------|------------------|---------------|
+| 1 | a1b2c3d4-e5f6-7890-abcd-ef1234567890 | 10234 | ✅ In Hub Queue  | 3.8s          |
+| 2 | b2c3d4e5-f6a7-8901-bcde-f12345678901 | 10234 | ✅ In Hub Queue  | 3.9s          |
+| 3 | c3d4e5f6-a7b8-9012-cdef-012345678912 | 10234 | ✅ In Hub Queue  | 4.1s          |
+| 4 | d4e5f6a7-b8c9-0123-defa-123456789023 | 10234 | ✅ In Hub Queue  | 4.0s          |
+| 5 | e5f6a7b8-c9d0-1234-efab-234567890134 | 10234 | ✅ In Hub Queue  | 4.2s          |
+
+All 5 standard orders successfully processed through the gateway pipeline.
+```
+
+### Other Things You Can Ask
+
+**Infrastructure lifecycle:**
+```
+"Set up the local infrastructure"
+"Build and run everything"
+"Tear everything down"
+```
+
+**Order testing:**
+```
+"Run 5 standard orders and show me each step"
+"Run 10 express orders for store 10234"
+"Run an end-to-end trace for one express order"
+```
+
+**Queue and S3 operations:**
+```
+"Check LocalStack health"
+"List all queues and their depths"
+"Send a test message to order-gateway-incoming"
+"Peek at the next 3 messages in order-hub-standard-order"
+"Purge all queues and start fresh"
+"Wait for an S3 object with prefix STANDARD/ to appear"
+"List all S3 objects in the STANDARD/ prefix"
+"Upload a JSON file to the orders S3 bucket"
+```
+
+**Order queries:**
+```
+"Search for order abc123 in store 10001"
+"Get the last 5 orders from store 10001"
+```
+
+**DLQ replay:**
+```
+"Download messages from the DLQ and replay them to LocalStack"
+```
+
+### Test Coverage
+
+The MCP agent code is covered by **107 unit tests** in `Order.MessageOperations.Api.Tests`:
+
+| Test Class | Tests | What It Covers |
+|---|---|---|
+| `QueuesControllerTests` | 12 | Queue list, status, peek, send, purge operations |
+| `S3ControllerTests` | 9 | Bucket/object listing, metadata, content, upload |
+| `BatchesControllerTests` | 10 | Batch list, details, messages |
+| `ReplayControllerTests` | 12 | Download, replay, download-and-replay flows |
+| `OrdersControllerTests` | 9 | Order queries, search, provider lookup |
+| `HealthControllerTests` | 4 | LocalStack health check (SQS/S3 up/down) |
+| `TraceControllerTests` | 7 | Wait-for-S3, wait-for-queue, wait-for-mongo, queue depths |
+| `TestDataControllerTests` | 9 | Generate orders validation, priority/format/count checks |
+| `MessageStorageServiceTests` | 18 | Batch persistence and retrieval |
+| `TestDataServiceTests` | 17 | Order generation: gateway format, ingest format, base64 encoding, classification routing, uniqueness |
 
 ---
 

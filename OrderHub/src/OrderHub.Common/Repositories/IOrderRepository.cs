@@ -6,7 +6,7 @@ namespace OrderHub.Common.Repositories;
 public interface IOrderRepository
 {
     public Task<ChannelOrder?> ReadAsync(string storeId, string orderId);
-    public Task<ChannelOrder> InsertAsync(ChannelOrder order);
+    public Task<ChannelOrder> InsertAsync(ChannelOrder order, CancellationToken cancellationToken = default);
     public Task<long> ReadCustomerOrdersCountAsync(string storeId, string customerId);
 
     public Task<List<ChannelOrder>> ReadCustomerOrdersAsync(string storeId, string customerId, int limit = 100, int offset = 0);

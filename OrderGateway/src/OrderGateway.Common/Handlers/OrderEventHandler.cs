@@ -3,6 +3,7 @@ using OrderGateway.Common.Configuration;
 using OrderGateway.Common.Managers;
 using OrderGateway.Common.Models;
 using OrderGateway.Common.Models.Events;
+using OrderGateway.Common.Telemetry;
 using Serilog.Context;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
@@ -10,7 +11,7 @@ using OrderGateway.Common.Configuration.Handlers;
 
 namespace OrderGateway.Common.Handlers;
 
-public class OrderEventHandler(IOrderEventManager orderEventManager, IOptions<MessageHandlerOptions> options) : BaseEventHandler<OrderEvent>(options)
+public class OrderEventHandler(IOrderEventManager orderEventManager, IOrderMetrics metrics, IOptions<MessageHandlerOptions> options) : BaseEventHandler<OrderEvent>(metrics, options)
 {
     protected override string EventType => "Order";
 
@@ -26,8 +27,8 @@ public class OrderEventHandler(IOrderEventManager orderEventManager, IOptions<Me
         return orderEvent;
     }
 
-    protected override async Task<ProcessingResult> ProcessEvent(OrderEvent evt)
-        => await orderEventManager.ProcessEvent(evt);
+    protected override async Task<ProcessingResult> ProcessEvent(OrderEvent evt, CancellationToken cancellationToken = default)
+        => await orderEventManager.ProcessEvent(evt, cancellationToken);
 
     protected override DisposableList CreateLogContext(OrderEvent orderEvent)
     {

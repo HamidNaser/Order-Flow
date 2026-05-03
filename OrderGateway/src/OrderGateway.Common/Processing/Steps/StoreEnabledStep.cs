@@ -1,11 +1,12 @@
 using OrderGateway.Common.FeatureToggle;
 using OrderGateway.Common.Models.Events;
 using OrderGateway.Common.Processing.Abstractions;
+using OrderGateway.Common.Telemetry;
 using Serilog;
 
 namespace OrderGateway.Common.Processing.Steps;
 
-public sealed class StoreEnabledStep<TEvent>(IFeatureToggle featureToggle) : IProcessingStep<TEvent> where TEvent : IEvent
+public sealed class StoreEnabledStep<TEvent>(IFeatureToggle featureToggle, IOrderMetrics metrics) : IProcessingStep<TEvent> where TEvent : IEvent
 {
     public Task<StepResult> ExecuteAsync(TEvent evt, StepContext context, CancellationToken ct = default)
     {
@@ -23,7 +24,7 @@ public sealed class StoreEnabledStep<TEvent>(IFeatureToggle featureToggle) : IPr
         }
 
         Log.Debug("{PipelineStep}: Store not enabled for {Event} StoreId={StoreId}", nameof(StoreEnabledStep<TEvent>), eventName, evt.StoreId);
-        NewRelic.Api.Agent.NewRelic.IncrementCounter($"Custom/{eventNameWithoutEvent}/Processing/Error/StoreNotEnabled");
+        metrics.IncrementCounter($"Custom/{eventNameWithoutEvent}/Processing/Error/StoreNotEnabled");
 
         return Task.FromResult(StepResult.Complete("Store not enabled, skipped."));
     }

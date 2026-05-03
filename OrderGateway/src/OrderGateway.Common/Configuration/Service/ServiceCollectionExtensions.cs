@@ -9,6 +9,7 @@ public static partial class ServiceCollectionExtensions
 {
     public static IServiceCollection ConfigureServices(this IServiceCollection services, IConfiguration configuration)
     {
+        services.AddSingleton<IOrderMetrics, NewRelicOrderMetrics>();
         services.AddSingleton<IContentSizeMetricEmitter, ContentSizeMetricEmitter>();
 
         // Use local stub when LocalCloudContent config is present (localstack/local environments);

@@ -103,8 +103,8 @@ namespace OrderGateway.Common.Clients.IngestStandardApi.V1
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                     if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
-                    // Operation Path: "api/order/text"
-                    urlBuilder_.Append("api/order/text");
+                    // Operation Path: "api/order/digital"
+                    urlBuilder_.Append("api/order/digital");
 
                     PrepareRequest(client_, request_, urlBuilder_);
 
@@ -215,8 +215,8 @@ namespace OrderGateway.Common.Clients.IngestStandardApi.V1
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                     if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
-                    // Operation Path: "api/order/shipment"
-                    urlBuilder_.Append("api/order/shipment");
+                    // Operation Path: "api/order/standard"
+                    urlBuilder_.Append("api/order/standard");
 
                     PrepareRequest(client_, request_, urlBuilder_);
 

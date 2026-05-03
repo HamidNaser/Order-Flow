@@ -30,6 +30,7 @@ public class CustomerLockService : ICustomerLockService
     /// acquired in this call and returns a non-acquired lease.
     /// </summary>
     /// <param name="customerIds">Customer identifiers to lock.</param>
+    /// <param name="cancellationToken">Token to cancel the operation.</param>
     /// <returns>
     /// A lease representing the acquired locks; if no locks are acquired, returns a non-acquired lease.
     /// </returns>
@@ -37,7 +38,7 @@ public class CustomerLockService : ICustomerLockService
     /// This method is best-effort and will not throw for lock-manager acquisition failures; however, it may throw
     /// if <paramref name="customerIds"/> enumeration or LINQ processing throws.
     /// </remarks>
-    public async Task<ICustomerLockLease> AcquireLocksAsync(IEnumerable<string> customerIds)
+    public async Task<ICustomerLockLease> AcquireLocksAsync(IEnumerable<string> customerIds, CancellationToken cancellationToken = default)
     {
         var orderedIds = customerIds?
             .Where(id => !string.IsNullOrWhiteSpace(id))
@@ -63,7 +64,7 @@ public class CustomerLockService : ICustomerLockService
                 {
                     LockId = BuildLockId(customerId),
                     LockDuration = _lockDuration
-                });
+                }, cancellationToken);
             }
             catch (Exception ex)
             {

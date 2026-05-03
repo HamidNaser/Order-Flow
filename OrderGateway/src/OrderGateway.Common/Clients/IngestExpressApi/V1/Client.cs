@@ -77,10 +77,10 @@ namespace OrderGateway.Common.Clients.IngestExpressApi.V1
         partial void ProcessResponse(System.Net.Http.HttpClient client, System.Net.Http.HttpResponseMessage response);
 
         /// <summary>
-        /// Add a NEW text order.
+        /// Add a NEW digital order.
         /// </summary>
         /// <remarks>
-        /// POST a valid text order request body which responds with an Accepted new OrderId.
+        /// POST a valid digital order request body which responds with an Accepted new OrderId.
         /// </remarks>
         /// <returns>Accepted - Operation Successful. Order will eventually be accessible.</returns>
         /// <exception cref="OrderGatewayApiV1ClientException">A server side error occurred.</exception>
@@ -91,10 +91,10 @@ namespace OrderGateway.Common.Clients.IngestExpressApi.V1
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Add a NEW text order.
+        /// Add a NEW digital order.
         /// </summary>
         /// <remarks>
-        /// POST a valid text order request body which responds with an Accepted new OrderId.
+        /// POST a valid digital order request body which responds with an Accepted new OrderId.
         /// </remarks>
         /// <returns>Accepted - Operation Successful. Order will eventually be accessible.</returns>
         /// <exception cref="OrderGatewayApiV1ClientException">A server side error occurred.</exception>
@@ -115,8 +115,8 @@ namespace OrderGateway.Common.Clients.IngestExpressApi.V1
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                     if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
-                    // Operation Path: "api/demo/order/text"
-                    urlBuilder_.Append("api/demo/order/text");
+                    // Operation Path: "api/demo/order/digital"
+                    urlBuilder_.Append("api/demo/order/digital");
 
                     PrepareRequest(client_, request_, urlBuilder_);
 
@@ -201,10 +201,10 @@ namespace OrderGateway.Common.Clients.IngestExpressApi.V1
         }
 
         /// <summary>
-        /// Add a NEW shipment order.
+        /// Add a NEW standard order.
         /// </summary>
         /// <remarks>
-        /// POST a valid shipment order request body which responds with an Accepted new OrderId.
+        /// POST a valid standard order request body which responds with an Accepted new OrderId.
         /// </remarks>
         /// <returns>Accepted - Operation Successful. Order will eventually be accessible.</returns>
         /// <exception cref="OrderGatewayApiV1ClientException">A server side error occurred.</exception>
@@ -215,10 +215,10 @@ namespace OrderGateway.Common.Clients.IngestExpressApi.V1
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Add a NEW shipment order.
+        /// Add a NEW standard order.
         /// </summary>
         /// <remarks>
-        /// POST a valid shipment order request body which responds with an Accepted new OrderId.
+        /// POST a valid standard order request body which responds with an Accepted new OrderId.
         /// </remarks>
         /// <returns>Accepted - Operation Successful. Order will eventually be accessible.</returns>
         /// <exception cref="OrderGatewayApiV1ClientException">A server side error occurred.</exception>
@@ -239,8 +239,8 @@ namespace OrderGateway.Common.Clients.IngestExpressApi.V1
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                     if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
-                    // Operation Path: "api/demo/order/shipment"
-                    urlBuilder_.Append("api/demo/order/shipment");
+                    // Operation Path: "api/demo/order/standard"
+                    urlBuilder_.Append("api/demo/order/standard");
 
                     PrepareRequest(client_, request_, urlBuilder_);
 
@@ -351,8 +351,8 @@ namespace OrderGateway.Common.Clients.IngestExpressApi.V1
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                     if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
-                    // Operation Path: "api/order/text"
-                    urlBuilder_.Append("api/order/text");
+                    // Operation Path: "api/order/digital"
+                    urlBuilder_.Append("api/order/digital");
 
                     PrepareRequest(client_, request_, urlBuilder_);
 
@@ -463,8 +463,8 @@ namespace OrderGateway.Common.Clients.IngestExpressApi.V1
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                     if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
-                    // Operation Path: "api/order/shipment"
-                    urlBuilder_.Append("api/order/shipment");
+                    // Operation Path: "api/order/standard"
+                    urlBuilder_.Append("api/order/standard");
 
                     PrepareRequest(client_, request_, urlBuilder_);
 

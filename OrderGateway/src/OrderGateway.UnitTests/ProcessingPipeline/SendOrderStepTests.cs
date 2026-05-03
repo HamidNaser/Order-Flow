@@ -4,6 +4,7 @@ using OrderGateway.Common.Models;
 using OrderGateway.Common.Processing.Abstractions;
 using OrderGateway.Common.Processing.Steps;
 using OrderGateway.Common.Services;
+using OrderGateway.Common.Telemetry;
 using NSubstitute;
 using Xunit;
 
@@ -12,11 +13,12 @@ namespace OrderGateway.UnitTests.ProcessingPipeline;
 public class SendOrderStepTests
 {
     private readonly IOrderService commsSvc = Substitute.For<IOrderService>();
+    private readonly IOrderMetrics metrics = Substitute.For<IOrderMetrics>();
 
     [Fact]
     public async Task ExecuteAsync_Success_Continues()
     {
-        var step = new SendOrderStep<OrderEvent>(commsSvc);
+        var step = new SendOrderStep<OrderEvent>(commsSvc, metrics);
         var evt = BuildOrder();
         var context = new StepContext();
         commsSvc.SendAsync(evt, Arg.Any<StepContext>(), Arg.Any<CancellationToken>()).Returns(Task.FromResult(OrderIngestResult.Ingested("abc")));
@@ -30,7 +32,7 @@ public class SendOrderStepTests
     [Fact]
     public async Task ExecuteAsync_Invalid_Poisons()
     {
-        var step = new SendOrderStep<OrderEvent>(commsSvc);
+        var step = new SendOrderStep<OrderEvent>(commsSvc, metrics);
         var evt = BuildOrder();
         commsSvc.SendAsync(evt, Arg.Any<StepContext>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(OrderIngestResult.Invalid("validation failed")));
@@ -46,7 +48,7 @@ public class SendOrderStepTests
     [Fact]
     public async Task ExecuteAsync_Duplicate_CompletesWithDetails()
     {
-        var step = new SendOrderStep<OrderEvent>(commsSvc);
+        var step = new SendOrderStep<OrderEvent>(commsSvc, metrics);
         var evt = BuildOrder();
         commsSvc.SendAsync(evt, Arg.Any<StepContext>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(OrderIngestResult.Duplicate("Duplicate order: existing-id")));

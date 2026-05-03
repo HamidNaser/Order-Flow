@@ -17,4 +17,11 @@
     <PackageReference Include="System.Text.Json" Version="8.0.5" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Include="Prompts\Templates\*.md">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>Prompts\Templates\%(Filename)%(Extension)</Link>
+    </Content>
+  </ItemGroup>
+
 </Project>

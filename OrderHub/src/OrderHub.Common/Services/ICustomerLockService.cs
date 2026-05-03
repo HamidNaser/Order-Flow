@@ -2,7 +2,7 @@ namespace OrderHub.Common.Services;
 
 public interface ICustomerLockService
 {
-    Task<ICustomerLockLease> AcquireLocksAsync(IEnumerable<string> customerIds);
+    Task<ICustomerLockLease> AcquireLocksAsync(IEnumerable<string> customerIds, CancellationToken cancellationToken = default);
 
     Task<bool> ReleaseLocksAsync(ICustomerLockLease lease);
 }
