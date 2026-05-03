@@ -94,7 +94,7 @@ namespace Order.MessagePump.Aws.Queues
             createQueueResponse.EnsureSuccess();
         }
 
-        public virtual async Task CompleteMessageAsync(Message message)
+        public virtual async Task CompleteMessageAsync(Message message, CancellationToken cancellationToken = default)
         {
             var deleteMessageRequest = new DeleteMessageRequest
             {
@@ -102,12 +102,12 @@ namespace Order.MessagePump.Aws.Queues
                 ReceiptHandle = message.ReceiptHandle
             };
 
-            var deleteMessageResponse = await sqsClient.DeleteMessageAsync(deleteMessageRequest);
+            var deleteMessageResponse = await sqsClient.DeleteMessageAsync(deleteMessageRequest, cancellationToken);
 
             deleteMessageResponse.EnsureSuccess();
         }
 
-        public virtual async Task<List<Message>> GetMessagesAsync(int maxNumberOfMessages)
+        public virtual async Task<List<Message>> GetMessagesAsync(int maxNumberOfMessages, CancellationToken cancellationToken = default)
         {
             var receiveMessageRequest = new ReceiveMessageRequest
             {
@@ -118,14 +118,14 @@ namespace Order.MessagePump.Aws.Queues
                 MessageSystemAttributeNames = new List<string> { "All" }
             };
 
-            var receiveMessageResponse = await sqsClient.ReceiveMessageAsync(receiveMessageRequest);
+            var receiveMessageResponse = await sqsClient.ReceiveMessageAsync(receiveMessageRequest, cancellationToken);
 
             receiveMessageResponse.EnsureSuccess();
 
             return receiveMessageResponse.Messages ?? new List<Message>();
         }
 
-        public virtual async Task PoisonMessageAsync(Message message, Exception? exception = null, string? reason = null)
+        public virtual async Task PoisonMessageAsync(Message message, Exception? exception = null, string? reason = null, CancellationToken cancellationToken = default)
         {
             try
             { 
@@ -162,7 +162,7 @@ namespace Order.MessagePump.Aws.Queues
             await CompleteMessageAsync(message);
         }
 
-        public virtual async Task RetryMessageAsync(Message message, TimeSpan? backoff)
+        public virtual async Task RetryMessageAsync(Message message, TimeSpan? backoff = null, CancellationToken cancellationToken = default)
         {
             if (backoff.HasValue)
             {
@@ -173,7 +173,7 @@ namespace Order.MessagePump.Aws.Queues
                     VisibilityTimeout = (int)backoff.Value.TotalSeconds
                 };
 
-                var changeMessageVisibilityResponse = await sqsClient.ChangeMessageVisibilityAsync(changeMessageVisibilityRequest);
+                var changeMessageVisibilityResponse = await sqsClient.ChangeMessageVisibilityAsync(changeMessageVisibilityRequest, cancellationToken);
 
                 changeMessageVisibilityResponse.EnsureSuccess();
             }
@@ -183,7 +183,7 @@ namespace Order.MessagePump.Aws.Queues
             }
         }
 
-        public virtual async Task<string> PublishMessageAsync(string body, Dictionary<string, string>? attributes = null)
+        public virtual async Task<string> PublishMessageAsync(string body, Dictionary<string, string>? attributes = null, CancellationToken cancellationToken = default)
         {
             return await PublishMessageAsync(body, attributes?.ToDictionary(a => a.Key, a => new MessageAttributeValue { DataType = "String", StringValue = a.Value }), (await GetQueueUrl())!);
         }

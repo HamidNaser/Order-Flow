@@ -25,14 +25,14 @@ namespace Order.MessagePump.Aws.Queues
             PoisonQueue = new ConcurrentQueue<Message>();
         }
 
-        public async Task CompleteMessageAsync(Message message)
+        public async Task CompleteMessageAsync(Message message, CancellationToken cancellationToken = default)
         {
             await Task.CompletedTask;
 
             // do nothing; message is already dequeued
         }
 
-        public async Task<List<Message>> GetMessagesAsync(int maxNumberOfMessages)
+        public async Task<List<Message>> GetMessagesAsync(int maxNumberOfMessages, CancellationToken cancellationToken = default)
         {
             await Task.CompletedTask;
 
@@ -49,21 +49,21 @@ namespace Order.MessagePump.Aws.Queues
             return messages;
         }
 
-        public async Task PoisonMessageAsync(Message message, Exception? ex = null, string? reason = null)
+        public async Task PoisonMessageAsync(Message message, Exception? ex = null, string? reason = null, CancellationToken cancellationToken = default)
         {
             await Task.CompletedTask;
 
             PoisonQueue.Enqueue(message);
         }
 
-        public async Task RetryMessageAsync(Message message, TimeSpan? backoff = null)
+        public async Task RetryMessageAsync(Message message, TimeSpan? backoff = null, CancellationToken cancellationToken = default)
         {
             await Task.CompletedTask;
 
             Queue.Enqueue(message);
         }
 
-        public async Task<string> PublishMessageAsync(string body, Dictionary<string, string>? attributes = null)
+        public async Task<string> PublishMessageAsync(string body, Dictionary<string, string>? attributes = null, CancellationToken cancellationToken = default)
         {
             await Task.CompletedTask;
 
