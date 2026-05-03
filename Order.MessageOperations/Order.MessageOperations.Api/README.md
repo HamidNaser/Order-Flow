@@ -911,7 +911,7 @@ aws --endpoint-url=http://localhost:4566 sqs purge-queue `
            "${workspaceFolder}/Order.MessageOperations/Order.MessageOperations.Mcp/Order.MessageOperations.Mcp.csproj"
          ],
          "env": {
-           "MESSAGEOPS_API_URL": "http://localhost:55701"
+           "MESSAGEOPS_API_URL": "http://localhost:5100"
          }
        }
      }

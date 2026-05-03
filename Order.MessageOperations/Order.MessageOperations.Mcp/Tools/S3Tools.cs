@@ -260,6 +260,54 @@ public class S3Tools
         return JsonSerializer.Serialize(response, JsonOptions);
     }
 
+    /// <summary>
+    /// Upload an object to a LocalStack S3 bucket.
+    /// </summary>
+    [McpServerTool]
+    [Description("Upload a text/JSON object to a LocalStack S3 bucket. Use this to place test order files in S3 to trigger S3 notifications and downstream processing.")]
+    public async Task<string> UploadS3Object(
+        [Description("The S3 bucket name (e.g., 'localstack-us-east-1-orders')")]
+        string bucketName,
+        [Description("The S3 object key/path (e.g., 'STANDARD/MERCHANT/SHIPMENT/order-123/abc123')")]
+        string key,
+        [Description("The content to upload (JSON or text)")]
+        string content,
+        [Description("The content type (default: 'application/json')")]
+        string contentType = "application/json",
+        CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(bucketName))
+        {
+            return "Error: bucketName is required.";
+        }
+        if (string.IsNullOrWhiteSpace(key))
+        {
+            return "Error: key is required.";
+        }
+        if (string.IsNullOrWhiteSpace(content))
+        {
+            return "Error: content is required.";
+        }
+
+        var result = await _client.UploadS3ObjectAsync(bucketName, key, content, contentType, ct);
+
+        if (result == null)
+        {
+            return $"Error: Failed to upload object to s3://{bucketName}/{key}.";
+        }
+
+        var response = new
+        {
+            success = true,
+            bucket = result.BucketName,
+            key = result.Key,
+            eTag = result.ETag,
+            summary = $"Uploaded object to s3://{result.BucketName}/{result.Key}"
+        };
+
+        return JsonSerializer.Serialize(response, JsonOptions);
+    }
+
     private static string NormalizeTarget(string target)
     {
         return target?.ToLowerInvariant() switch

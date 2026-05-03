@@ -1,5 +1,6 @@
 using Order.MessageOperations.Api.Configuration;
 using Order.MessageOperations.Api.Models.Requests;
+using Order.MessageOperations.Api.Models.Responses;
 using Order.MessageOperations.Api.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
@@ -11,13 +12,13 @@ namespace Order.MessageOperations.Api.Controllers.V1;
 public class ReplayController : ControllerBase
 {
     private readonly MessageOperationsOptions _options;
-    private readonly QueueReplayService _queueReplayService;
-    private readonly MessageStorageService _messageStorageService;
+    private readonly IQueueReplayService _queueReplayService;
+    private readonly IMessageStorageService _messageStorageService;
 
     public ReplayController(
         IOptions<MessageOperationsOptions> options,
-        QueueReplayService queueReplayService,
-        MessageStorageService messageStorageService)
+        IQueueReplayService queueReplayService,
+        IMessageStorageService messageStorageService)
     {
         _options = options.Value;
         _queueReplayService = queueReplayService;
@@ -31,12 +32,12 @@ public class ReplayController : ControllerBase
     {
         if (string.IsNullOrWhiteSpace(request.QueueKey))
         {
-            return BadRequest(new { Message = "QueueKey is required" });
+            return BadRequest(new ErrorResponse("QueueKey is required"));
         }
 
         if (!_options.Queues.TryGetValue(request.QueueKey, out var queueMapping))
         {
-            return NotFound(new { Message = $"Queue key '{request.QueueKey}' not found in configuration" });
+            return NotFound(new ErrorResponse($"Queue key '{request.QueueKey}' not found in configuration"));
         }
 
         var awsQueueName = !string.IsNullOrWhiteSpace(request.AwsQueueName)
@@ -52,13 +53,11 @@ public class ReplayController : ControllerBase
             request.MessageId,
             cancellationToken);
 
-        return Ok(new
-        {
-            Downloaded = downloaded,
-            BatchPath = batchPath,
-            QueueKey = request.QueueKey,
-            AwsQueueName = awsQueueName
-        });
+        return Ok(new DownloadMessagesResponse(
+            Downloaded: downloaded,
+            BatchPath: batchPath,
+            QueueKey: request.QueueKey,
+            AwsQueueName: awsQueueName));
     }
 
     [HttpPost("from-batch")]
@@ -68,19 +67,19 @@ public class ReplayController : ControllerBase
     {
         if (string.IsNullOrWhiteSpace(request.QueueType) || string.IsNullOrWhiteSpace(request.BatchId))
         {
-            return BadRequest(new { Message = "QueueType and BatchId are required" });
+            return BadRequest(new ErrorResponse("QueueType and BatchId are required"));
         }
 
         var batchPath = _messageStorageService.BuildBatchPath(request.QueueType, request.BatchId);
         if (!Directory.Exists(batchPath))
         {
-            return NotFound(new { Message = "Batch not found" });
+            return NotFound(new ErrorResponse("Batch not found"));
         }
 
         var messages = await _messageStorageService.LoadBatchAsync(batchPath);
         if (!messages.Any())
         {
-            return Ok(new { Replayed = 0, Total = 0 });
+            return Ok(new ReplayFromBatchResponse(Replayed: 0, Total: 0));
         }
 
         var localStackQueueName = request.LocalStackQueueName;
@@ -92,7 +91,7 @@ public class ReplayController : ControllerBase
 
         if (string.IsNullOrWhiteSpace(localStackQueueName))
         {
-            return BadRequest(new { Message = "LocalStackQueueName is required when queue mapping is unavailable" });
+            return BadRequest(new ErrorResponse("LocalStackQueueName is required when queue mapping is unavailable"));
         }
 
         var successCount = await _queueReplayService.ReplayToLocalStackAsyncByName(
@@ -100,12 +99,10 @@ public class ReplayController : ControllerBase
             messages,
             cancellationToken);
 
-        return Ok(new
-        {
-            Replayed = successCount,
-            Total = messages.Count,
-            LocalStackQueueName = localStackQueueName
-        });
+        return Ok(new ReplayFromBatchResponse(
+            Replayed: successCount,
+            Total: messages.Count,
+            LocalStackQueueName: localStackQueueName));
     }
 
     [HttpPost("download-and-replay")]
@@ -115,7 +112,7 @@ public class ReplayController : ControllerBase
     {
         if (string.IsNullOrWhiteSpace(request.QueueKey))
         {
-            return BadRequest(new { Message = "QueueKey is required" });
+            return BadRequest(new ErrorResponse("QueueKey is required"));
         }
 
         var replayed = await _queueReplayService.DownloadAndReplayAsync(
@@ -124,10 +121,8 @@ public class ReplayController : ControllerBase
             request.MessageId,
             cancellationToken);
 
-        return Ok(new
-        {
-            QueueKey = request.QueueKey,
-            Replayed = replayed
-        });
+        return Ok(new DownloadAndReplayResponse(
+            QueueKey: request.QueueKey,
+            Replayed: replayed));
     }
 }

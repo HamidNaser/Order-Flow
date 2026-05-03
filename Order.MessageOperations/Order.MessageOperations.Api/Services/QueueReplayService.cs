@@ -7,11 +7,11 @@ using Microsoft.Extensions.Options;
 
 namespace Order.MessageOperations.Api.Services;
 
-public class QueueReplayService : IDisposable
+public class QueueReplayService : IQueueReplayService, IDisposable
 {
     private readonly MessageOperationsOptions _config;
     private readonly ILogger<QueueReplayService> _logger;
-    private readonly MessageStorageService _storageService;
+    private readonly IMessageStorageService _storageService;
     private readonly IAmazonSQS _awsSqsClient;
     private readonly IAmazonSQS _localStackSqsClient;
     private readonly IAmazonSQS? _localStackSqsFallbackClient;
@@ -21,7 +21,7 @@ public class QueueReplayService : IDisposable
     public QueueReplayService(
         IOptions<MessageOperationsOptions> config,
         ILogger<QueueReplayService> logger,
-        MessageStorageService storageService)
+        IMessageStorageService storageService)
     {
         _config = config.Value;
         _logger = logger;
@@ -252,6 +252,78 @@ public class QueueReplayService : IDisposable
 
         var response = await ExecuteLocalStackAsync(client => client.ReceiveMessageAsync(request, cancellationToken));
         return response.Messages ?? new List<Message>();
+    }
+
+    public async Task<string> SendMessageToLocalStackAsync(
+        string queueName,
+        string messageBody,
+        Dictionary<string, string>? messageAttributes = null,
+        string? messageGroupId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var queueUrl = await GetLocalStackQueueUrlAsync(queueName, cancellationToken);
+
+        var sendRequest = new SendMessageRequest
+        {
+            QueueUrl = queueUrl,
+            MessageBody = messageBody
+        };
+
+        if (messageAttributes is { Count: > 0 })
+        {
+            sendRequest.MessageAttributes = messageAttributes.ToDictionary(
+                kvp => kvp.Key,
+                kvp => new Amazon.SQS.Model.MessageAttributeValue
+                {
+                    StringValue = kvp.Value,
+                    DataType = "String"
+                });
+        }
+
+        if (!string.IsNullOrWhiteSpace(messageGroupId))
+        {
+            sendRequest.MessageGroupId = messageGroupId;
+        }
+
+        var response = await ExecuteLocalStackAsync(client => client.SendMessageAsync(sendRequest, cancellationToken));
+        _logger.LogInformation("Sent message to LocalStack queue {QueueName}, MessageId: {MessageId}", queueName, response.MessageId);
+        return response.MessageId;
+    }
+
+    public async Task PurgeLocalStackQueueAsync(string queueName, CancellationToken cancellationToken = default)
+    {
+        var queueUrl = await GetLocalStackQueueUrlAsync(queueName, cancellationToken);
+        await ExecuteLocalStackAsync(client => client.PurgeQueueAsync(new PurgeQueueRequest { QueueUrl = queueUrl }, cancellationToken));
+        _logger.LogInformation("Purged LocalStack queue {QueueName}", queueName);
+    }
+
+    public async Task<Dictionary<string, bool>> PurgeAllConfiguredLocalStackQueuesAsync(CancellationToken cancellationToken = default)
+    {
+        var results = new Dictionary<string, bool>();
+
+        foreach (var (queueKey, mapping) in _config.Queues.Where(q => q.Value.Enabled))
+        {
+            foreach (var queueName in new[] { mapping.LocalStackQueueName, mapping.AwsDlqName })
+            {
+                if (string.IsNullOrWhiteSpace(queueName))
+                {
+                    continue;
+                }
+
+                try
+                {
+                    await PurgeLocalStackQueueAsync(queueName, cancellationToken);
+                    results[queueName] = true;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to purge LocalStack queue {QueueName}", queueName);
+                    results[queueName] = false;
+                }
+            }
+        }
+
+        return results;
     }
 
     #region Target-aware methods (LocalStack or AWS)

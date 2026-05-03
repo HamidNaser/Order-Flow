@@ -1,5 +1,7 @@
 using Order.MessageOperations.Mcp.Client;
 using Order.MessageOperations.Mcp.Configuration;
+using Order.MessageOperations.Mcp.Prompts;
+using Order.MessageOperations.Mcp.Resources;
 using Order.MessageOperations.Mcp.Tools;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -44,7 +46,12 @@ builder.Services
     .WithTools<BatchTools>()
     .WithTools<ReplayTools>()
     .WithTools<S3Tools>()
-    .WithTools<OrderTools>();
+    .WithTools<OrderTools>()
+    .WithTools<HealthTools>()
+    .WithTools<TraceTools>()
+    .WithTools<TestDataTools>()
+    .WithPrompts<OrderPrompts>()
+    .WithResources<OrderResources>();
 
 // Build and run
 var host = builder.Build();

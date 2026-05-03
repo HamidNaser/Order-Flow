@@ -1,4 +1,5 @@
 using Order.MessageOperations.Api.Models.Requests;
+using Order.MessageOperations.Api.Models.Responses;
 using Order.MessageOperations.Api.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -8,12 +9,12 @@ namespace Order.MessageOperations.Api.Controllers.V1;
 [Route("api/v1/s3")]
 public class S3Controller : ControllerBase
 {
-    private readonly S3OperationsService _s3OperationsService;
-    private readonly MessageStorageService _messageStorageService;
+    private readonly IS3OperationsService _s3OperationsService;
+    private readonly IMessageStorageService _messageStorageService;
 
     public S3Controller(
-        S3OperationsService s3OperationsService,
-        MessageStorageService messageStorageService)
+        IS3OperationsService s3OperationsService,
+        IMessageStorageService messageStorageService)
     {
         _s3OperationsService = s3OperationsService;
         _messageStorageService = messageStorageService;
@@ -51,7 +52,7 @@ public class S3Controller : ControllerBase
     {
         if (string.IsNullOrWhiteSpace(key))
         {
-            return BadRequest(new { Message = "Query parameter 'key' is required" });
+            return BadRequest(new ErrorResponse("Query parameter 'key' is required"));
         }
 
         var useLocalStack = !target.Equals("aws", StringComparison.OrdinalIgnoreCase);
@@ -69,7 +70,7 @@ public class S3Controller : ControllerBase
     {
         if (string.IsNullOrWhiteSpace(key))
         {
-            return BadRequest(new { Message = "Query parameter 'key' is required" });
+            return BadRequest(new ErrorResponse("Query parameter 'key' is required"));
         }
 
         var useLocalStack = !target.Equals("aws", StringComparison.OrdinalIgnoreCase);
@@ -84,13 +85,13 @@ public class S3Controller : ControllerBase
     {
         if (string.IsNullOrWhiteSpace(request.QueueType) || string.IsNullOrWhiteSpace(request.BatchId))
         {
-            return BadRequest(new { Message = "QueueType and BatchId are required" });
+            return BadRequest(new ErrorResponse("QueueType and BatchId are required"));
         }
 
         var batchPath = _messageStorageService.BuildBatchPath(request.QueueType, request.BatchId);
         if (!Directory.Exists(batchPath))
         {
-            return NotFound(new { Message = "Batch not found" });
+            return NotFound(new ErrorResponse("Batch not found"));
         }
 
         var messages = await _messageStorageService.LoadBatchAsync(batchPath);
@@ -99,11 +100,43 @@ public class S3Controller : ControllerBase
             request.UseAwsFallback,
             cancellationToken);
 
-        return Ok(new
+        return Ok(new SyncFromBatchResponse(
+            Synced: synced,
+            TotalMessages: messages.Count,
+            UseAwsFallback: request.UseAwsFallback));
+    }
+
+    /// <summary>
+    /// Upload an object to a LocalStack S3 bucket.
+    /// </summary>
+    [HttpPost("buckets/{bucketName}/upload")]
+    public async Task<IActionResult> UploadObject(
+        string bucketName,
+        [FromBody] UploadS3ObjectRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(bucketName))
         {
-            Synced = synced,
-            TotalMessages = messages.Count,
-            request.UseAwsFallback
-        });
+            return BadRequest(new ErrorResponse("Bucket name is required"));
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Key))
+        {
+            return BadRequest(new ErrorResponse("Object key is required"));
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Content))
+        {
+            return BadRequest(new ErrorResponse("Content is required"));
+        }
+
+        var eTag = await _s3OperationsService.UploadObjectToLocalStackAsync(
+            bucketName,
+            request.Key,
+            request.Content,
+            request.ContentType,
+            cancellationToken);
+
+        return Ok(new UploadS3ObjectResponse(bucketName, request.Key, eTag));
     }
 }

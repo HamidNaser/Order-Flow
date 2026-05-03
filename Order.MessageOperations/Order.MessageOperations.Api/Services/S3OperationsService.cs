@@ -9,7 +9,7 @@ using Microsoft.Extensions.Options;
 
 namespace Order.MessageOperations.Api.Services;
 
-public class S3OperationsService : IDisposable
+public class S3OperationsService : IS3OperationsService, IDisposable
 {
     private readonly IAmazonS3 _awsS3Client;
     private readonly IAmazonS3 _localStackS3Client;
@@ -74,7 +74,7 @@ public class S3OperationsService : IDisposable
             MaxKeys = Math.Clamp(maxKeys, 1, 1000)
         }, cancellationToken);
 
-        return response.S3Objects.Select(item => new S3ObjectInfo
+        return (response.S3Objects ?? []).Select(item => new S3ObjectInfo
         {
             Key = item.Key,
             Size = item.Size ?? 0,
@@ -199,6 +199,26 @@ public class S3OperationsService : IDisposable
         }
 
         return syncedCount;
+    }
+
+    public async Task<string> UploadObjectToLocalStackAsync(
+        string bucketName,
+        string key,
+        string content,
+        string contentType = "application/json",
+        CancellationToken cancellationToken = default)
+    {
+        var putRequest = new PutObjectRequest
+        {
+            BucketName = bucketName,
+            Key = key,
+            ContentBody = content,
+            ContentType = contentType
+        };
+
+        var response = await _localStackS3Client.PutObjectAsync(putRequest, cancellationToken);
+        _logger.LogInformation("Uploaded object to LocalStack s3://{Bucket}/{Key}, ETag: {ETag}", bucketName, key, response.ETag);
+        return response.ETag;
     }
 
     private async Task UploadCachedObjectAsync(
