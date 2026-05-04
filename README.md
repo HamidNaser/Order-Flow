@@ -1,10 +1,10 @@
-# Communication
+# Order-Flow
 
-`Communication` is a multi-solution `.NET 8` distributed order processing platform that ingests orders across two service boundaries through event-driven queues, step-based pipeline orchestration, and S3/MongoDB persistence.
+`Order-Flow` is a multi-solution `.NET 8` distributed order processing platform that ingests orders across two service boundaries through event-driven queues, step-based pipeline orchestration, and S3/MongoDB persistence.
 
 It is designed as a production-grade layered architecture with OAuth-secured service-to-service communication, config-driven environment switching, Aspire orchestration, and resilient queue processing.
 
-`Communication` demonstrates a specific approach:
+`Order-Flow` demonstrates a specific approach:
 
 - **Event-driven ingestion** through SQS queues with circuit-breaker resilience
 - **Step-based pipeline orchestration** through `ProcessingPipeline<TEvent>` with pluggable stages
